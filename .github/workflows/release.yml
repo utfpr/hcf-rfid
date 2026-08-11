@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build-and-release:
     name: Build APK and Create Release
@@ -43,7 +46,7 @@ jobs:
       - name: Rename APK
         run: |
           mv build/app/outputs/flutter-apk/app-release.apk \
-             build/app/outputs/flutter-apk/beontag-agro-${{ steps.version.outputs.tag }}.apk
+             build/app/outputs/flutter-apk/hcf-rfid-${{ steps.version.outputs.tag }}.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -51,7 +54,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           name: "Release ${{ steps.version.outputs.tag }}"
           body: |
-            ## Beontag Agro Mobile ${{ steps.version.outputs.tag }}
+            ## HCF RFID Mobile ${{ steps.version.outputs.tag }}
 
             Build gerado automaticamente a partir do commit `${{ github.sha }}`.
 
@@ -61,7 +64,7 @@ jobs:
             3. Instale o APK
 
             **Commit:** ${{ github.event.head_commit.message }}
-          files: build/app/outputs/flutter-apk/beontag-agro-${{ steps.version.outputs.tag }}.apk
+          files: build/app/outputs/flutter-apk/hcf-rfid-${{ steps.version.outputs.tag }}.apk
           draft: false
           prerelease: false
         env:
