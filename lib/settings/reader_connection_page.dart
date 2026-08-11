@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../components/page_title_header.dart';
 import '../services/reader_service.dart';
+import '../theme/app_colors.dart';
 import 'add_reader_page.dart';
 
 class ReaderConnectionPage extends StatefulWidget {
@@ -12,8 +13,6 @@ class ReaderConnectionPage extends StatefulWidget {
 }
 
 class _ReaderConnectionPageState extends State<ReaderConnectionPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-
   final ReaderService _readerService = ReaderService();
   String? _selectedReaderId;
 
@@ -50,7 +49,7 @@ class _ReaderConnectionPageState extends State<ReaderConnectionPage> {
     final readers = _readerService.availableReaders;
 
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -104,8 +103,6 @@ class _ReaderCard extends StatelessWidget {
     required this.onTap,
   });
 
-  static const Color _primaryColor = Color(0xFF007A33);
-
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -118,7 +115,7 @@ class _ReaderCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
           decoration: BoxDecoration(
             border: Border.all(
-              color: isSelected ? _primaryColor : Colors.transparent,
+              color: isSelected ? AppColors.primary : Colors.transparent,
               width: 1.5,
             ),
             borderRadius: BorderRadius.circular(12),
@@ -131,7 +128,9 @@ class _ReaderCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: isSelected ? _primaryColor : const Color(0xFFBDBDBD),
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.borderInactive,
                     width: 2,
                   ),
                 ),
@@ -142,7 +141,7 @@ class _ReaderCard extends StatelessWidget {
                           height: 12,
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: _primaryColor,
+                            color: AppColors.primary,
                           ),
                         ),
                       )
@@ -154,7 +153,7 @@ class _ReaderCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Color(0xFF1A1A1A),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ],
@@ -174,8 +173,6 @@ class _BottomActions extends StatelessWidget {
     required this.onConnect,
   });
 
-  static const Color _primaryColor = Color(0xFF007A33);
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -186,7 +183,7 @@ class _BottomActions extends StatelessWidget {
           child: const Text(
             'Add a new reader',
             style: TextStyle(
-              color: _primaryColor,
+              color: AppColors.primary,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -195,7 +192,7 @@ class _BottomActions extends StatelessWidget {
         ElevatedButton(
           onPressed: onConnect,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _primaryColor,
+            backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
             shape: RoundedRectangleBorder(

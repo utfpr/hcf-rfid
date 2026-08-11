@@ -4,6 +4,7 @@ import '../search/search_page.dart';
 import '../services/conference_service.dart';
 import '../services/rfid_tag_service.dart';
 import '../services/scan_session_service.dart';
+import '../theme/app_colors.dart';
 
 class SessionDetailsPage extends StatefulWidget {
   final String sessionId;
@@ -18,11 +19,6 @@ class SessionDetailsPage extends StatefulWidget {
 }
 
 class _SessionDetailsPageState extends State<SessionDetailsPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _titleColor = Color(0xFF424242);
-  static const Color _primaryBlue = Color(0xFF0066CC);
-  static const Color _activeGreen = Color(0xFF4CAF50);
-
   final ScanSessionService _sessionService = ScanSessionService();
 
   // Filter state
@@ -138,7 +134,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: _screenBackground,
+        backgroundColor: AppColors.background,
         body: const Center(
           child: CircularProgressIndicator(),
         ),
@@ -147,7 +143,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
 
     if (_session == null) {
       return Scaffold(
-        backgroundColor: _screenBackground,
+        backgroundColor: AppColors.background,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -160,7 +156,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                     padding: EdgeInsets.only(bottom: 16),
                     child: Icon(
                       Icons.chevron_left,
-                      color: _titleColor,
+                      color: AppColors.textHeading,
                       size: 28,
                     ),
                   ),
@@ -168,7 +164,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                 const Center(
                   child: Text(
                     'Session not found',
-                    style: TextStyle(fontSize: 18, color: _titleColor),
+                    style: TextStyle(fontSize: 18, color: AppColors.textHeading),
                   ),
                 ),
               ],
@@ -179,7 +175,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
     }
 
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -193,7 +189,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                   padding: EdgeInsets.only(bottom: 16),
                   child: Icon(
                     Icons.chevron_left,
-                    color: _titleColor,
+                    color: AppColors.textHeading,
                     size: 28,
                   ),
                 ),
@@ -205,7 +201,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: _titleColor,
+                      color: AppColors.textHeading,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -213,7 +209,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: _session!.isSynced ? _activeGreen : Colors.orange,
+                      color: _session!.isSynced ? AppColors.success : Colors.orange,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -232,7 +228,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                 width: 48,
                 height: 3,
                 decoration: BoxDecoration(
-                  color: _titleColor,
+                  color: AppColors.textHeading,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -291,7 +287,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                                 child: Text(
                                   'No tags in this session',
                                   style: TextStyle(
-                                    color: Color(0xFF9E9E9E),
+                                    color: AppColors.textMuted,
                                     fontSize: 16,
                                   ),
                                 ),
@@ -368,7 +364,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryBlue,
+                    backgroundColor: AppColors.primary,
                     disabledBackgroundColor: Colors.grey[400],
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
@@ -490,7 +486,6 @@ class _FilterBottomSheet extends StatefulWidget {
 }
 
 class _FilterBottomSheetState extends State<_FilterBottomSheet> {
-  static const Color _primaryBlue = Color(0xFF0066CC);
   late String _selectedType;
 
   @override
@@ -592,7 +587,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
                 widget.onApplyFilter(_selectedType, widget.filterNameController.text);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryBlue,
+                backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25),
                 ),
@@ -640,10 +635,10 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? _primaryBlue : Colors.white,
+          color: isSelected ? AppColors.primary : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? _primaryBlue : Colors.grey[300]!,
+            color: isSelected ? AppColors.primary : Colors.grey[300]!,
           ),
         ),
         child: Text(
@@ -672,12 +667,9 @@ class _TagAccordionItem extends StatelessWidget {
     required this.onSearch,
   });
 
-  static const Color _readGreen = Color(0xFF4CAF50);
-  static const Color _unreadBlue = Color(0xFF1A1A2E);
-
   @override
   Widget build(BuildContext context) {
-    final headerColor = item.isRead ? _readGreen : _unreadBlue;
+    final headerColor = item.isRead ? AppColors.success : AppColors.secondary;
 
     return Container(
       decoration: BoxDecoration(
@@ -762,7 +754,7 @@ class _TagAccordionItem extends StatelessWidget {
                         width: 32,
                         child: IconButton(
                           padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.search, size: 20, color: Color(0xFF0066CC)),
+                          icon: const Icon(Icons.search, size: 20, color: AppColors.primary),
                           tooltip: 'Search this tag',
                           onPressed: onSearch,
                         ),

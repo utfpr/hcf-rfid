@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../home_page.dart';
 import '../services/reader_service.dart';
 import '../services/c72_reader_plugin.dart';
+import '../theme/app_colors.dart';
 import 'bluetooth_connection_screen.dart';
 import 'connection_success_screen.dart';
 
@@ -14,11 +15,6 @@ class ConfigScreen extends StatefulWidget {
 }
 
 class _ConfigScreenState extends State<ConfigScreen> {
-  static const Color _primaryBlue = Color(0xFF007A33);
-  static const Color _inactiveGray = Color(0xFFE0E0E0);
-  static const Color _textGray = Color(0xFF757575);
-  static const Color _borderGray = Color(0xFFE0E0E0);
-
   final TextEditingController _nicknameController = TextEditingController();
 
   String? _selectedManufacturer;
@@ -144,7 +140,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _primaryBlue,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -154,7 +150,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _inactiveGray,
+                        color: AppColors.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -164,7 +160,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _inactiveGray,
+                        color: AppColors.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -178,7 +174,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A2E),
+                  color: AppColors.secondary,
                 ),
               ),
               const SizedBox(height: 32),
@@ -187,7 +183,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 'Choose the manufacture',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF424242),
+                  color: AppColors.textHeading,
                 ),
               ),
               const SizedBox(height: 8),
@@ -202,7 +198,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 'Choose the reader',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF424242),
+                  color: AppColors.textHeading,
                 ),
               ),
               const SizedBox(height: 8),
@@ -217,20 +213,20 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 'Nickname (optional)',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF424242),
+                  color: AppColors.textHeading,
                 ),
               ),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  border: Border.all(color: _borderGray),
+                  border: Border.all(color: AppColors.border),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TextField(
                   controller: _nicknameController,
                   decoration: const InputDecoration(
                     hintText: 'Store reader',
-                    hintStyle: TextStyle(color: Color(0xFF9E9E9E)),
+                    hintStyle: TextStyle(color: AppColors.textMuted),
                     contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     border: InputBorder.none,
                   ),
@@ -246,10 +242,10 @@ class _ConfigScreenState extends State<ConfigScreen> {
                     child: Text(
                       'skip',
                       style: TextStyle(
-                        color: _primaryBlue,
+                        color: AppColors.primary,
                         fontSize: 16,
                         decoration: TextDecoration.underline,
-                        decorationColor: _primaryBlue,
+                        decorationColor: AppColors.primary,
                       ),
                     ),
                   ),
@@ -259,7 +255,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                     child: FilledButton(
                       onPressed: _onNext,
                       style: FilledButton.styleFrom(
-                        backgroundColor: _primaryBlue,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22),
@@ -291,7 +287,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: _borderGray),
+        border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
@@ -299,7 +295,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
           value: value,
           isExpanded: true,
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          icon: Icon(Icons.keyboard_arrow_down, color: _textGray),
+          icon: Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary),
           items: items.map((item) {
             return DropdownMenuItem<String>(
               value: item,
@@ -307,7 +303,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 item,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF424242),
+                  color: AppColors.textHeading,
                 ),
               ),
             );

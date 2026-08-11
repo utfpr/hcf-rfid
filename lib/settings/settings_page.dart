@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../components/page_title_header.dart';
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
 import 'profile_page.dart';
 import 'reader_connection_page.dart';
 import 'reader_configuration_page.dart';
@@ -14,8 +15,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-
   String get _profileSubtitle {
     final user = AuthService().currentUser;
     return user != null ? user.email : 'Visitante';
@@ -24,7 +23,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -111,12 +110,12 @@ class _SettingsMenuItem extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE3F2E9),
+                  color: AppColors.primarySoft,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: const Color(0xFF007A33),
+                  color: AppColors.primary,
                   size: 24,
                 ),
               ),
@@ -130,7 +129,7 @@ class _SettingsMenuItem extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1A1A1A),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -138,7 +137,7 @@ class _SettingsMenuItem extends StatelessWidget {
                       subtitle,
                       style: const TextStyle(
                         fontSize: 14,
-                        color: Color(0xFF757575),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -146,7 +145,7 @@ class _SettingsMenuItem extends StatelessWidget {
               ),
               const Icon(
                 Icons.chevron_right,
-                color: Color(0xFF757575),
+                color: AppColors.textSecondary,
                 size: 24,
               ),
             ],

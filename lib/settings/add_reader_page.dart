@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../components/page_title_header.dart';
 import '../services/reader_service.dart';
+import '../theme/app_colors.dart';
 
 class AddReaderPage extends StatefulWidget {
   const AddReaderPage({super.key});
@@ -11,9 +12,6 @@ class AddReaderPage extends StatefulWidget {
 }
 
 class _AddReaderPageState extends State<AddReaderPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _primaryColor = Color(0xFF007A33);
-
   final TextEditingController _nicknameController = TextEditingController();
   final ReaderService _readerService = ReaderService();
 
@@ -84,7 +82,7 @@ class _AddReaderPageState extends State<AddReaderPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -100,7 +98,7 @@ class _AddReaderPageState extends State<AddReaderPage> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: Color(0xFF757575),
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -118,7 +116,7 @@ class _AddReaderPageState extends State<AddReaderPage> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: Color(0xFF757575),
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -140,7 +138,7 @@ class _AddReaderPageState extends State<AddReaderPage> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w400,
-                  color: Color(0xFF757575),
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -149,28 +147,28 @@ class _AddReaderPageState extends State<AddReaderPage> {
                 decoration: InputDecoration(
                   hintText: 'Store reader',
                   hintStyle: const TextStyle(
-                    color: Color(0xFF9E9E9E),
+                    color: AppColors.textMuted,
                   ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: Color(0xFFE0E0E0),
+                      color: AppColors.border,
                       width: 1,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: Color(0xFFE0E0E0),
+                      color: AppColors.border,
                       width: 1,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: _primaryColor,
+                      color: AppColors.primary,
                       width: 1.5,
                     ),
                   ),
@@ -189,7 +187,7 @@ class _AddReaderPageState extends State<AddReaderPage> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _onSave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryColor,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -232,7 +230,7 @@ class _AddReaderPageState extends State<AddReaderPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFFE0E0E0),
+          color: AppColors.border,
           width: 1,
         ),
       ),
@@ -243,7 +241,7 @@ class _AddReaderPageState extends State<AddReaderPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           icon: const Icon(
             Icons.keyboard_arrow_down,
-            color: Color(0xFF757575),
+            color: AppColors.textSecondary,
           ),
           items: items.map((item) {
             return DropdownMenuItem<String>(
@@ -252,7 +250,7 @@ class _AddReaderPageState extends State<AddReaderPage> {
                 item,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF1A1A1A),
+                  color: AppColors.textPrimary,
                 ),
               ),
             );

@@ -4,6 +4,7 @@ import 'config_screen.dart';
 import '../home_page.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
+import '../theme/app_colors.dart';
 
 class ConnectReaderScreen extends StatefulWidget {
   const ConnectReaderScreen({super.key});
@@ -13,9 +14,6 @@ class ConnectReaderScreen extends StatefulWidget {
 }
 
 class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
-  static const Color _circleBackground = Color(0xFFE3F2E9);
-  static const Color _primaryBlue = Color(0xFF007A33);
-
   final ReaderService _readerService = ReaderService();
   bool _isLoading = true;
   String _loadingStatus = 'Initializing…';
@@ -171,7 +169,7 @@ class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
                 width: 160,
                 height: 160,
                 decoration: const BoxDecoration(
-                  color: _circleBackground,
+                  color: AppColors.primarySoft,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -205,7 +203,7 @@ class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
                     ),
               ),
               const Spacer(),
-              const Divider(height: 1, color: Color(0xFFE0E0E0)),
+              const Divider(height: 1, color: AppColors.border),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -218,7 +216,7 @@ class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
                     );
                   },
                   style: FilledButton.styleFrom(
-                    backgroundColor: _primaryBlue,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -243,10 +241,10 @@ class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
                   child: Text(
                     'connect a new reader',
                     style: TextStyle(
-                      color: _primaryBlue,
+                      color: AppColors.primary,
                       fontSize: 16,
                       decoration: TextDecoration.underline,
-                      decorationColor: _primaryBlue,
+                      decorationColor: AppColors.primary,
                     ),
                   ),
                 ),

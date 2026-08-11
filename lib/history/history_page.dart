@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/scan_session_service.dart';
+import '../theme/app_colors.dart';
 import 'session_details_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -11,9 +12,6 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _titleColor = Color(0xFF424242);
-
   final ScanSessionService _sessionService = ScanSessionService();
   List<HistoryItem> _historyItems = [];
   bool _isLoading = true;
@@ -56,7 +54,7 @@ class _HistoryPageState extends State<HistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -70,7 +68,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   padding: EdgeInsets.only(bottom: 16),
                   child: Icon(
                     Icons.chevron_left,
-                    color: _titleColor,
+                    color: AppColors.textHeading,
                     size: 28,
                   ),
                 ),
@@ -82,7 +80,7 @@ class _HistoryPageState extends State<HistoryPage> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: _titleColor,
+                      color: AppColors.textHeading,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -100,7 +98,7 @@ class _HistoryPageState extends State<HistoryPage> {
                 width: 48,
                 height: 3,
                 decoration: BoxDecoration(
-                  color: _titleColor,
+                  color: AppColors.textHeading,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -114,7 +112,7 @@ class _HistoryPageState extends State<HistoryPage> {
                             child: Text(
                               'No scan sessions yet',
                               style: TextStyle(
-                                color: Color(0xFF9E9E9E),
+                                color: AppColors.textMuted,
                                 fontSize: 16,
                               ),
                             ),
@@ -175,13 +173,11 @@ class _HistoryAccordionItem extends StatelessWidget {
     required this.onViewDetails,
   });
 
-  static const Color _primaryDark = Color(0xFF1A1A2E);
-
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: _primaryDark, width: 1.5),
+        border: Border.all(color: AppColors.secondary, width: 1.5),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -191,7 +187,7 @@ class _HistoryAccordionItem extends StatelessWidget {
             onTap: onToggle,
             child: Container(
               decoration: BoxDecoration(
-                color: _primaryDark,
+                color: AppColors.secondary,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(6),
                   topRight: const Radius.circular(6),

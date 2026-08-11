@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../components/page_title_header.dart';
+import '../theme/app_colors.dart';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _cardBackground = Color(0xFF007A33);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -24,7 +22,7 @@ class AboutPage extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: _cardBackground,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Column(
@@ -52,7 +50,7 @@ class AboutPage extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Column(
@@ -90,7 +88,7 @@ class _InfoRow extends StatelessWidget {
             '$label:',
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF9E9E9E),
+              color: AppColors.textMuted,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -99,7 +97,7 @@ class _InfoRow extends StatelessWidget {
             value,
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF424242),
+              color: AppColors.textHeading,
               fontWeight: FontWeight.w600,
             ),
           ),

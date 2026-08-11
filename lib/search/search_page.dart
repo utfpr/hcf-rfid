@@ -7,6 +7,7 @@ import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
 import '../services/stock_service.dart';
+import '../theme/app_colors.dart';
 
 class SearchPage extends StatefulWidget {
   final String? initialTid;
@@ -18,9 +19,6 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _cardBackground = Color(0xFF007A33);
-
   final StockService _stockService = StockService();
   final ReaderService _readerService = ReaderService();
 
@@ -179,7 +177,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -202,7 +200,7 @@ class _SearchPageState extends State<SearchPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBackground,
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(16),
       ),
       child: _isScanning ? _buildScanningCardContent() : _buildSelectionCardContent(),
@@ -246,7 +244,7 @@ class _SearchPageState extends State<SearchPage> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE0E0E0), width: 1),
+            border: Border.all(color: AppColors.border, width: 1),
           ),
           child: _isLoadingTids
               ? const Padding(
@@ -256,10 +254,10 @@ class _SearchPageState extends State<SearchPage> {
                       SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF9E9E9E)),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
                       ),
                       SizedBox(width: 10),
-                      Text('Loading TIDs...', style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 14)),
+                      Text('Loading TIDs...', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
                     ],
                   ),
                 )
@@ -269,17 +267,17 @@ class _SearchPageState extends State<SearchPage> {
                     isExpanded: true,
                     hint: const Text(
                       'All tags (best signal)',
-                      style: TextStyle(color: Color(0xFF9E9E9E), fontSize: 14),
+                      style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF757575)),
+                    icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary),
                     dropdownColor: Colors.white,
                     items: [
                       const DropdownMenuItem<String>(
                         value: null,
                         child: Text(
                           'All tags (best signal)',
-                          style: TextStyle(fontSize: 14, color: Color(0xFF9E9E9E)),
+                          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
                         ),
                       ),
                       ..._tids.map(
@@ -287,7 +285,7 @@ class _SearchPageState extends State<SearchPage> {
                           value: tid,
                           child: Text(
                             tid,
-                            style: const TextStyle(fontSize: 14, color: Color(0xFF1A1A1A)),
+                            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
                           ),
                         ),
                       ),
@@ -405,7 +403,7 @@ class _SearchPageState extends State<SearchPage> {
           : Center(
               child: Text(
                 emptyMessage,
-                style: const TextStyle(color: Color(0xFF9E9E9E), fontSize: 16),
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
               ),
             ),
     );
@@ -425,12 +423,12 @@ class _SearchPageState extends State<SearchPage> {
             children: [
               Text(
                 entry.timestamp,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF9E9E9E), fontFamily: 'monospace'),
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted, fontFamily: 'monospace'),
               ),
               const SizedBox(width: 12),
               Text(
                 'RSSI: ${entry.rssi}',
-                style: const TextStyle(fontSize: 13, color: Color(0xFF616161), fontFamily: 'monospace'),
+                style: const TextStyle(fontSize: 13, color: AppColors.textMutedAlt, fontFamily: 'monospace'),
               ),
             ],
           ),
@@ -455,14 +453,14 @@ class _SearchPageState extends State<SearchPage> {
               if (isFirst)
                 const Padding(
                   padding: EdgeInsets.only(right: 6),
-                  child: Icon(Icons.signal_cellular_alt, size: 14, color: Color(0xFF007A33)),
+                  child: Icon(Icons.signal_cellular_alt, size: 14, color: AppColors.primary),
                 ),
               Expanded(
                 child: Text(
                   tag.tid,
                   style: TextStyle(
                     fontSize: 12,
-                    color: isFirst ? const Color(0xFF007A33) : const Color(0xFF424242),
+                    color: isFirst ? AppColors.primary : AppColors.textHeading,
                     fontFamily: 'monospace',
                     fontWeight: isFirst ? FontWeight.w600 : FontWeight.normal,
                   ),
@@ -474,7 +472,7 @@ class _SearchPageState extends State<SearchPage> {
                 'RSSI: ${tag.rssi}',
                 style: TextStyle(
                   fontSize: 13,
-                  color: isFirst ? const Color(0xFF007A33) : const Color(0xFF616161),
+                  color: isFirst ? AppColors.primary : AppColors.textMutedAlt,
                   fontFamily: 'monospace',
                   fontWeight: isFirst ? FontWeight.w600 : FontWeight.normal,
                 ),

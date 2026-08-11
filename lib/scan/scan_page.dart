@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../components/page_title_header.dart';
 import '../services/conference_service.dart';
+import '../theme/app_colors.dart';
 import 'conference_scan_page.dart';
 
 class ScanPage extends StatefulWidget {
@@ -12,10 +13,6 @@ class ScanPage extends StatefulWidget {
 }
 
 class _ScanPageState extends State<ScanPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _primaryPurple = Color(0xFF007A33);
-  static const Color _cardBackground = Color(0xFF007A33);
-
   final ConferenceService _conferenceService = ConferenceService();
 
   int? _selectedConferenceId;
@@ -78,7 +75,7 @@ class _ScanPageState extends State<ScanPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -101,7 +98,7 @@ class _ScanPageState extends State<ScanPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBackground,
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -142,7 +139,7 @@ class _ScanPageState extends State<ScanPage> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(8),
               border:
-                  Border.all(color: const Color(0xFFE0E0E0), width: 1),
+                  Border.all(color: AppColors.border, width: 1),
             ),
             child: _loadingConferences
                 ? const Padding(
@@ -160,7 +157,7 @@ class _ScanPageState extends State<ScanPage> {
                         Text('Loading conferences…',
                             style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF757575))),
+                                color: AppColors.textSecondary)),
                       ],
                     ),
                   )
@@ -171,12 +168,12 @@ class _ScanPageState extends State<ScanPage> {
                       padding:
                           const EdgeInsets.symmetric(horizontal: 16),
                       icon: const Icon(Icons.keyboard_arrow_down,
-                          color: Color(0xFF757575)),
+                          color: AppColors.textSecondary),
                       dropdownColor: Colors.white,
                       hint: const Text(
                         'Select a conference',
                         style: TextStyle(
-                            fontSize: 14, color: Color(0xFF9E9E9E)),
+                            fontSize: 14, color: AppColors.textMuted),
                       ),
                       items: _conferences
                           .map((c) => DropdownMenuItem<int>(
@@ -185,7 +182,7 @@ class _ScanPageState extends State<ScanPage> {
                                   c.displayName,
                                   style: const TextStyle(
                                       fontSize: 14,
-                                      color: Color(0xFF1A1A1A)),
+                                      color: AppColors.textPrimary),
                                 ),
                               ))
                           .toList(),
@@ -210,7 +207,7 @@ class _ScanPageState extends State<ScanPage> {
       child: ElevatedButton(
         onPressed: enabled ? _onStart : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryPurple,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           disabledBackgroundColor: Colors.grey[400],
           shape: RoundedRectangleBorder(

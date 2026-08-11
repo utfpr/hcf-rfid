@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/btl_reader_plugin.dart';
 import '../services/reader_service.dart';
+import '../theme/app_colors.dart';
 import 'connection_success_screen.dart';
 
 /// Mock Bluetooth device for display
@@ -30,11 +31,6 @@ class BluetoothConnectionScreen extends StatefulWidget {
 
 class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
     with SingleTickerProviderStateMixin {
-  static const Color _primaryBlue = Color(0xFF007A33);
-  static const Color _inactiveGray = Color(0xFFE0E0E0);
-  static const Color _circleLight = Color(0xFFE3F2E9);
-  static const Color _circleMedium = Color(0xFFC8E6D5);
-
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
@@ -147,7 +143,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _inactiveGray,
+                        color: AppColors.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -157,7 +153,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _primaryBlue,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -167,7 +163,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _inactiveGray,
+                        color: AppColors.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -182,7 +178,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A2E),
+                    color: AppColors.secondary,
                   ),
                 ),
               ),
@@ -200,10 +196,10 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                     child: Text(
                       'Back',
                       style: TextStyle(
-                        color: _primaryBlue,
+                        color: AppColors.primary,
                         fontSize: 16,
                         decoration: TextDecoration.underline,
-                        decorationColor: _primaryBlue,
+                        decorationColor: AppColors.primary,
                       ),
                     ),
                   ),
@@ -213,9 +209,9 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                     child: FilledButton(
                       onPressed: _isSearching || _selectedDeviceId == null ? null : _onConnect,
                       style: FilledButton.styleFrom(
-                        backgroundColor: _primaryBlue,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: _inactiveGray,
+                        disabledBackgroundColor: AppColors.border,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22),
                         ),
@@ -258,7 +254,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                       width: 180,
                       height: 180,
                       decoration: BoxDecoration(
-                        color: _circleLight.withValues(alpha: 0.5),
+                        color: AppColors.primarySoft.withValues(alpha: 0.5),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -270,7 +266,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                       width: 140,
                       height: 140,
                       decoration: BoxDecoration(
-                        color: _circleLight,
+                        color: AppColors.primarySoft,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -280,14 +276,14 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: _circleMedium,
+                      color: AppColors.primaryMedium,
                       shape: BoxShape.circle,
                     ),
                     child: const Center(
                       child: Icon(
                         Icons.bluetooth,
                         size: 40,
-                        color: Color(0xFF1A1A2E),
+                        color: AppColors.secondary,
                       ),
                     ),
                   ),
@@ -306,7 +302,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: Color(0xFF424242),
+                color: AppColors.textHeading,
                 height: 1.5,
               ),
             ),
@@ -332,7 +328,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                   'No devices found',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xFF424242),
+                    color: AppColors.textHeading,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -341,7 +337,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF757575),
+                    color: AppColors.textSecondary,
                     height: 1.5,
                   ),
                 ),
@@ -355,8 +351,8 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                   icon: const Icon(Icons.refresh),
                   label: const Text('Search again'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: _primaryBlue,
-                    side: const BorderSide(color: _primaryBlue),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
                   ),
                 ),
               ],
@@ -376,7 +372,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
             'Select a device',
             style: TextStyle(
               fontSize: 16,
-              color: Color(0xFF424242),
+              color: AppColors.textHeading,
             ),
           ),
         ),
@@ -400,7 +396,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: isSelected ? _primaryBlue : _inactiveGray,
+                      color: isSelected ? AppColors.primary : AppColors.border,
                       width: isSelected ? 2 : 1,
                     ),
                     borderRadius: BorderRadius.circular(12),
@@ -412,7 +408,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: _circleLight,
+                          color: AppColors.primarySoft,
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -421,11 +417,11 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                             width: 24,
                             height: 24,
                             fit: BoxFit.contain,
-                            color: _primaryBlue,
+                            color: AppColors.primary,
                             errorBuilder: (_, _, _) => Icon(
                               Icons.qr_code_scanner,
                               size: 24,
-                              color: _primaryBlue,
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -438,7 +434,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color: Color(0xFF1A1A2E),
+                            color: AppColors.secondary,
                           ),
                         ),
                       ),
@@ -449,7 +445,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected ? _primaryBlue : _inactiveGray,
+                            color: isSelected ? AppColors.primary : AppColors.border,
                             width: 2,
                           ),
                         ),
@@ -459,7 +455,7 @@ class _BluetoothConnectionScreenState extends State<BluetoothConnectionScreen>
                                   width: 12,
                                   height: 12,
                                   decoration: BoxDecoration(
-                                    color: _primaryBlue,
+                                    color: AppColors.primary,
                                     shape: BoxShape.circle,
                                   ),
                                 ),

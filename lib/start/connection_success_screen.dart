@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/btl_reader_plugin.dart';
 import '../services/reader_service.dart';
 import '../home_page.dart';
+import '../theme/app_colors.dart';
 
 class ConnectionSuccessScreen extends StatefulWidget {
   final String manufacturer;
@@ -23,10 +24,6 @@ class ConnectionSuccessScreen extends StatefulWidget {
 }
 
 class _ConnectionSuccessScreenState extends State<ConnectionSuccessScreen> {
-  static const Color _primaryBlue = Color(0xFF007A33);
-  static const Color _inactiveGray = Color(0xFFE0E0E0);
-  static const Color _circleLight = Color(0xFFE3F2E9);
-
   final ReaderService _readerService = ReaderService();
 
   void _onBack() {
@@ -90,7 +87,7 @@ class _ConnectionSuccessScreenState extends State<ConnectionSuccessScreen> {
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _inactiveGray,
+                        color: AppColors.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -100,7 +97,7 @@ class _ConnectionSuccessScreenState extends State<ConnectionSuccessScreen> {
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _inactiveGray,
+                        color: AppColors.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -110,7 +107,7 @@ class _ConnectionSuccessScreenState extends State<ConnectionSuccessScreen> {
                     child: Container(
                       height: 4,
                       decoration: BoxDecoration(
-                        color: _primaryBlue,
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -124,14 +121,14 @@ class _ConnectionSuccessScreenState extends State<ConnectionSuccessScreen> {
                   width: 140,
                   height: 140,
                   decoration: BoxDecoration(
-                    color: _circleLight,
+                    color: AppColors.primarySoft,
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
                     child: Icon(
                       Icons.check,
                       size: 60,
-                      color: Color(0xFF424242),
+                      color: AppColors.textHeading,
                     ),
                   ),
                 ),
@@ -147,7 +144,7 @@ class _ConnectionSuccessScreenState extends State<ConnectionSuccessScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF1A1A2E),
+                      color: AppColors.secondary,
                       height: 1.5,
                     ),
                   ),
@@ -163,10 +160,10 @@ class _ConnectionSuccessScreenState extends State<ConnectionSuccessScreen> {
                     child: Text(
                       'Back',
                       style: TextStyle(
-                        color: _primaryBlue,
+                        color: AppColors.primary,
                         fontSize: 16,
                         decoration: TextDecoration.underline,
-                        decorationColor: _primaryBlue,
+                        decorationColor: AppColors.primary,
                       ),
                     ),
                   ),
@@ -176,7 +173,7 @@ class _ConnectionSuccessScreenState extends State<ConnectionSuccessScreen> {
                     child: FilledButton(
                       onPressed: _onNext,
                       style: FilledButton.styleFrom(
-                        backgroundColor: _primaryBlue,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(22),

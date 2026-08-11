@@ -7,6 +7,7 @@ import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
 import '../services/scan_session_service.dart';
+import '../theme/app_colors.dart';
 
 class ConferenceScanPage extends StatefulWidget {
   final int conferenceId;
@@ -25,13 +26,6 @@ class ConferenceScanPage extends StatefulWidget {
 }
 
 class _ConferenceScanPageState extends State<ConferenceScanPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _primaryBlue = Color(0xFF0066CC);
-  static const Color _readGreen = Color(0xFF4CAF50);
-  static const Color _unreadGrey = Color(0xFF9E9E9E);
-  static const Color _cardBackground = Color(0xFF007A33);
-  static const Color _titleColor = Color(0xFF424242);
-
   final ScanSessionService _sessionService = ScanSessionService();
   final ReaderService _readerService = ReaderService();
 
@@ -191,7 +185,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
       });
 
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -208,7 +202,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
                   padding: EdgeInsets.only(bottom: 16),
                   child: Icon(
                     Icons.chevron_left,
-                    color: _titleColor,
+                    color: AppColors.textHeading,
                     size: 28,
                   ),
                 ),
@@ -219,7 +213,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: _titleColor,
+                  color: AppColors.textHeading,
                 ),
               ),
               const SizedBox(height: 4),
@@ -227,7 +221,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
                 width: 48,
                 height: 3,
                 decoration: BoxDecoration(
-                  color: _titleColor,
+                  color: AppColors.textHeading,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -248,7 +242,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
                           child: Text(
                             'No items in this conference',
                             style: TextStyle(
-                              color: Color(0xFF9E9E9E),
+                              color: AppColors.textMuted,
                               fontSize: 16,
                             ),
                           ),
@@ -300,7 +294,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBackground,
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -315,7 +309,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: _isScanning ? _readGreen : _unreadGrey,
+                        color: _isScanning ? AppColors.success : AppColors.textMuted,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -377,7 +371,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
       child: ElevatedButton(
         onPressed: _isFinishing ? null : _finishScan,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryBlue,
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           disabledBackgroundColor: Colors.grey[400],
           shape: RoundedRectangleBorder(
@@ -421,12 +415,9 @@ class _EpcAccordionItem extends StatelessWidget {
     required this.onToggle,
   });
 
-  static const Color _primaryDark = Color(0xFF1A1A2E);
-  static const Color _readGreen = Color(0xFF4CAF50);
-
   @override
   Widget build(BuildContext context) {
-    final headerColor = isRead ? _readGreen : _primaryDark;
+    final headerColor = isRead ? AppColors.success : AppColors.secondary;
 
     return Container(
       decoration: BoxDecoration(

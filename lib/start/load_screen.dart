@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
 import 'connect_reader_screen.dart';
 import 'login_screen.dart';
 
@@ -42,9 +43,9 @@ class _LoadScreenState extends State<LoadScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF00592B), // 0%
-              Color(0xFF007A33), // 89%
-              Color(0xFF1E9E52), // 97%
+              AppColors.primaryDark, // 0%
+              AppColors.primary, // 89%
+              AppColors.primaryLight, // 97%
             ],
             stops: [0.0, 0.89, 0.97],
           ),

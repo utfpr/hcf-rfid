@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../components/page_title_header.dart';
 import '../services/auth_service.dart';
 import '../start/login_screen.dart';
+import '../theme/app_colors.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -12,9 +13,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _primaryPurple = Color(0xFF007A33);
-
   // Login form state (used when guest)
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
@@ -67,7 +65,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text(
               'Sair',
-              style: TextStyle(color: Color(0xFFD32F2F)),
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -87,7 +85,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -120,7 +118,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               CircleAvatar(
                 radius: 28,
-                backgroundColor: _primaryPurple,
+                backgroundColor: AppColors.primary,
                 child: Text(
                   initial,
                   style: const TextStyle(
@@ -140,7 +138,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1A1A),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -148,7 +146,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       user.email,
                       style: const TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF757575),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                     if (user.funcao != null) ...[
@@ -157,7 +155,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE3F2E9),
+                          color: AppColors.primarySoft,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -165,7 +163,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: _primaryPurple,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -187,13 +185,13 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Row(
               children: [
                 const Icon(Icons.shield_outlined,
-                    size: 18, color: Color(0xFF757575)),
+                    size: 18, color: AppColors.textSecondary),
                 const SizedBox(width: 10),
                 Text(
                   'Permissão: ${user.permitionNome}',
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF424242),
+                    color: AppColors.textHeading,
                   ),
                 ),
               ],
@@ -212,8 +210,8 @@ class _ProfilePageState extends State<ProfilePage> {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFD32F2F),
-              side: const BorderSide(color: Color(0xFFD32F2F)),
+              foregroundColor: AppColors.error,
+              side: const BorderSide(color: AppColors.error),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -231,20 +229,20 @@ class _ProfilePageState extends State<ProfilePage> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF8E1),
+            color: AppColors.warningBackgroundAlt,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFFFD54F)),
+            border: Border.all(color: AppColors.warningBorderAlt),
           ),
           child: const Row(
             children: [
-              Icon(Icons.info_outline, color: Color(0xFFF9A825), size: 20),
+              Icon(Icons.info_outline, color: AppColors.warningIconAlt, size: 20),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Você está como visitante. Faça login para acessar suas conferências.',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF5D4037),
+                    color: AppColors.warningTextAlt,
                   ),
                 ),
               ),
@@ -268,7 +266,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A1A),
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -301,7 +299,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: const Color(0xFF9E9E9E),
+                        color: AppColors.textMuted,
                         size: 20,
                       ),
                       onPressed: () => setState(
@@ -319,13 +317,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Icon(Icons.error_outline,
-                          color: Color(0xFFD32F2F), size: 16),
+                          color: AppColors.error, size: 16),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           _errorMessage!,
                           style: const TextStyle(
-                            color: Color(0xFFD32F2F),
+                            color: AppColors.error,
                             fontSize: 13,
                           ),
                         ),
@@ -340,7 +338,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: ElevatedButton(
                     onPressed: _loadingLogin ? null : _onLogin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryPurple,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: Colors.grey[300],
                       shape: RoundedRectangleBorder(
@@ -378,33 +376,33 @@ class _ProfilePageState extends State<ProfilePage> {
       {required String label, required IconData icon}) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: const Color(0xFF9E9E9E), size: 20),
+      prefixIcon: Icon(icon, color: AppColors.textMuted, size: 20),
       filled: true,
-      fillColor: const Color(0xFFF5F5F5),
+      fillColor: AppColors.inputFill,
       contentPadding:
           const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: _primaryPurple, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFD32F2F)),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide:
-            const BorderSide(color: Color(0xFFD32F2F), width: 1.5),
+            const BorderSide(color: AppColors.error, width: 1.5),
       ),
-      labelStyle: const TextStyle(color: Color(0xFF9E9E9E)),
+      labelStyle: const TextStyle(color: AppColors.textMuted),
     );
   }
 }

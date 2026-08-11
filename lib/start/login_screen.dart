@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
 import 'connect_reader_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -65,9 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF00592B),
-              Color(0xFF007A33),
-              Color(0xFF1E9E52),
+              AppColors.primaryDark,
+              AppColors.primary,
+              AppColors.primaryLight,
             ],
             stops: [0.0, 0.89, 0.97],
           ),
@@ -80,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                    'assets/beontag_logo.png',
+                    'assets/hcf-logo.png',
                     height: 72,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.eco,
@@ -106,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: const [
                         BoxShadow(
-                          color: Color(0x26000000),
+                          color: AppColors.shadow,
                           blurRadius: 24,
                           offset: Offset(0, 8),
                         ),
@@ -122,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF1A1A1A),
+                              color: AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -130,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             'Use suas credenciais da plataforma',
                             style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF757575),
+                              color: AppColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 24),
@@ -166,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   _obscurePassword
                                       ? Icons.visibility_outlined
                                       : Icons.visibility_off_outlined,
-                                  color: const Color(0xFF9E9E9E),
+                                  color: AppColors.textMuted,
                                   size: 20,
                                 ),
                                 onPressed: () => setState(
@@ -187,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 const Icon(
                                   Icons.error_outline,
-                                  color: Color(0xFFD32F2F),
+                                  color: AppColors.error,
                                   size: 16,
                                 ),
                                 const SizedBox(width: 6),
@@ -195,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   child: Text(
                                     _errorMessage!,
                                     style: const TextStyle(
-                                      color: Color(0xFFD32F2F),
+                                      color: AppColors.error,
                                       fontSize: 13,
                                     ),
                                   ),
@@ -210,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: ElevatedButton(
                               onPressed: _loading ? null : _onLogin,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF007A33),
+                                backgroundColor: AppColors.primary,
                                 foregroundColor: Colors.white,
                                 disabledBackgroundColor:
                                     Colors.grey[300],
@@ -269,34 +270,34 @@ class _LoginScreenState extends State<LoginScreen> {
       {required String label, required IconData icon}) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: const Color(0xFF9E9E9E), size: 20),
+      prefixIcon: Icon(icon, color: AppColors.textMuted, size: 20),
       filled: true,
-      fillColor: const Color(0xFFF5F5F5),
+      fillColor: AppColors.inputFill,
       contentPadding:
           const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide:
-            const BorderSide(color: Color(0xFF007A33), width: 1.5),
+            const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFD32F2F)),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide:
-            const BorderSide(color: Color(0xFFD32F2F), width: 1.5),
+            const BorderSide(color: AppColors.error, width: 1.5),
       ),
-      labelStyle: const TextStyle(color: Color(0xFF9E9E9E)),
+      labelStyle: const TextStyle(color: AppColors.textMuted),
     );
   }
 }

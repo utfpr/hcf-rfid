@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'start/load_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,10 +13,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Beontag UTFPR Agro',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF007A33)),
-      ),
+      title: 'HCF UTFPR',
+      theme: AppTheme.light,
       home: const LoadScreen(), 
     );
   }

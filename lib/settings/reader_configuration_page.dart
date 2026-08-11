@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../components/page_title_header.dart';
 import '../services/reader_service.dart';
+import '../theme/app_colors.dart';
 
 class ReaderConfigurationPage extends StatefulWidget {
   const ReaderConfigurationPage({super.key});
@@ -13,9 +14,6 @@ class ReaderConfigurationPage extends StatefulWidget {
 }
 
 class _ReaderConfigurationPageState extends State<ReaderConfigurationPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _sectionTitleColor = Color(0xFF1A1A1A);
-
   final ReaderService _readerService = ReaderService();
   late TextEditingController _readPowerController;
   late TextEditingController _writePowerController;
@@ -116,7 +114,7 @@ class _ReaderConfigurationPageState extends State<ReaderConfigurationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -132,7 +130,7 @@ class _ReaderConfigurationPageState extends State<ReaderConfigurationPage> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: _sectionTitleColor,
+                  color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 24),
@@ -184,10 +182,6 @@ class _PowerControl extends StatelessWidget {
     required this.onTextChanged,
   });
 
-  static const Color _primaryColor = Color(0xFF007A33);
-  static const Color _inactiveColor = Color(0xFFBDBDBD);
-  static const Color _labelColor = Color(0xFF424242);
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -198,7 +192,7 @@ class _PowerControl extends StatelessWidget {
           style: const TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: _labelColor,
+            color: AppColors.textHeading,
           ),
         ),
         const SizedBox(height: 12),
@@ -206,10 +200,10 @@ class _PowerControl extends StatelessWidget {
         // Custom slider
         SliderTheme(
           data: SliderThemeData(
-            activeTrackColor: _primaryColor,
-            inactiveTrackColor: _inactiveColor,
-            thumbColor: _primaryColor,
-            overlayColor: _primaryColor.withOpacity(0.2),
+            activeTrackColor: AppColors.primary,
+            inactiveTrackColor: AppColors.borderInactive,
+            thumbColor: AppColors.primary,
+            overlayColor: AppColors.primary.withOpacity(0.2),
             trackHeight: 4,
             thumbShape: const RoundSliderThumbShape(
               enabledThumbRadius: 8,
@@ -243,7 +237,7 @@ class _PowerControl extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF1A1A1A),
+                  color: AppColors.textPrimary,
                 ),
                 decoration: InputDecoration(
                   filled: true,
@@ -255,21 +249,21 @@ class _PowerControl extends StatelessWidget {
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: Color(0xFFE0E0E0),
+                      color: AppColors.border,
                       width: 1,
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: Color(0xFFE0E0E0),
+                      color: AppColors.border,
                       width: 1,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: _primaryColor,
+                      color: AppColors.primary,
                       width: 1.5,
                     ),
                   ),
@@ -290,7 +284,7 @@ class _PowerControl extends StatelessWidget {
               'dBm',
               style: TextStyle(
                 fontSize: 16,
-                color: Color(0xFF757575),
+                color: AppColors.textSecondary,
               ),
             ),
           ],

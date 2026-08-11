@@ -12,6 +12,7 @@ import 'services/auth_service.dart';
 import 'services/reader_service.dart';
 import 'settings/settings_page.dart';
 import 'tags/add_tag_page.dart';
+import 'theme/app_colors.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -24,9 +25,6 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final ReaderService _readerService = ReaderService();
-
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _cardBlue = Color(0xFF007A33);
 
   bool _isNetworkConnected = false;
   Timer? _connectivityTimer;
@@ -68,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -86,7 +84,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _cardBlue,
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Image.asset(
@@ -174,7 +172,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _cardBlue,
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -265,13 +263,10 @@ class _HomeMenuButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  static const Color _iconCircleLilac = Color(0xFFE3F2E9);
-  static const Color _buttonTextColor = Color(0xFF424242);
-
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
       elevation: 2,
       shadowColor: Colors.black26,
@@ -287,10 +282,10 @@ class _HomeMenuButton extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: const BoxDecoration(
-                  color: _iconCircleLilac,
+                  color: AppColors.primarySoft,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, size: 22, color: _buttonTextColor),
+                child: Icon(icon, size: 22, color: AppColors.textHeading),
               ),
               const SizedBox(height: 8),
               Text(
@@ -298,7 +293,7 @@ class _HomeMenuButton extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: _buttonTextColor,
+                  color: AppColors.textHeading,
                 ),
               ),
             ],

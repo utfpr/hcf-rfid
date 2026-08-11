@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+
 /// Header with page title and a short decorative line underneath.
 /// Same style used across Home, Scan, History, Settings, About.
 class PageTitleHeader extends StatelessWidget {
@@ -11,9 +13,6 @@ class PageTitleHeader extends StatelessWidget {
 
   final String title;
   final bool showBackButton;
-
-  static const Color _titleColor = Color(0xFF424242);
-  static const Color _accentColor = Color(0xFF007A33);
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +27,7 @@ class PageTitleHeader extends StatelessWidget {
               padding: EdgeInsets.only(bottom: 16),
               child: Icon(
                 Icons.chevron_left,
-                color: _titleColor,
+                color: AppColors.textHeading,
                 size: 28,
               ),
             ),
@@ -38,7 +37,7 @@ class PageTitleHeader extends StatelessWidget {
           style: const TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: _titleColor,
+            color: AppColors.textHeading,
           ),
         ),
         const SizedBox(height: 8),
@@ -46,7 +45,7 @@ class PageTitleHeader extends StatelessWidget {
           width: 48,
           height: 3,
           decoration: BoxDecoration(
-            color: _accentColor,
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(2),
           ),
         ),

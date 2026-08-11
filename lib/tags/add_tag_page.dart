@@ -8,6 +8,7 @@ import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
 import '../services/rfid_tag_service.dart';
+import '../theme/app_colors.dart';
 
 class AddTagPage extends StatefulWidget {
   const AddTagPage({super.key});
@@ -17,9 +18,6 @@ class AddTagPage extends StatefulWidget {
 }
 
 class _AddTagPageState extends State<AddTagPage> {
-  static const Color _screenBackground = Color(0xFFF0F2F5);
-  static const Color _cardBackground = Color(0xFF007A33);
-
   bool _isScanning = false;
   String? _bestTid;
   int _bestRssi = -999;
@@ -176,7 +174,7 @@ class _AddTagPageState extends State<AddTagPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _screenBackground,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -212,7 +210,7 @@ class _AddTagPageState extends State<AddTagPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBackground,
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -293,22 +291,22 @@ class _AddTagPageState extends State<AddTagPage> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFF3CD),
+                      color: AppColors.warningBackground,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFFFCC00)),
+                      border: Border.all(color: AppColors.warningBorder),
                     ),
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.warning_amber_rounded,
-                            size: 16, color: Color(0xFF856404)),
+                            size: 16, color: AppColors.warningText),
                         SizedBox(width: 6),
                         Text(
                           'Tag existente',
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF856404),
+                            color: AppColors.warningText,
                           ),
                         ),
                       ],
@@ -317,7 +315,7 @@ class _AddTagPageState extends State<AddTagPage> {
                 Text(
                   message,
                   style: const TextStyle(
-                    color: Color(0xFF9E9E9E),
+                    color: AppColors.textMuted,
                     fontSize: 16,
                   ),
                   textAlign: TextAlign.center,
@@ -339,7 +337,7 @@ class _AddTagPageState extends State<AddTagPage> {
         label: Text(isExisting ? 'Ver Tag' : 'Add Tag'),
         style: ElevatedButton.styleFrom(
           backgroundColor:
-              isExisting ? const Color(0xFF757575) : const Color(0xFF007A33),
+              isExisting ? AppColors.textSecondary : AppColors.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
@@ -494,7 +492,7 @@ class _AddTagFormState extends State<_AddTagForm> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE0E0E0),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -507,7 +505,7 @@ class _AddTagFormState extends State<_AddTagForm> {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF424242),
+                      color: AppColors.textHeading,
                     ),
                   ),
                   if (_readOnly) ...[
@@ -516,16 +514,16 @@ class _AddTagFormState extends State<_AddTagForm> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3CD),
+                        color: AppColors.warningBackground,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFFFCC00)),
+                        border: Border.all(color: AppColors.warningBorder),
                       ),
                       child: const Text(
                         'Tag existente',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF856404),
+                          color: AppColors.warningText,
                         ),
                       ),
                     ),
@@ -540,10 +538,10 @@ class _AddTagFormState extends State<_AddTagForm> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEAF5EE),
+                  color: AppColors.primarySofter,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: const Color(0xFF007A33).withValues(alpha: 0.3),
+                    color: AppColors.primary.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
@@ -553,7 +551,7 @@ class _AddTagFormState extends State<_AddTagForm> {
                       'TID (scanned)',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF007A33),
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -562,7 +560,7 @@ class _AddTagFormState extends State<_AddTagForm> {
                       widget.tid,
                       style: const TextStyle(
                         fontSize: 13,
-                        color: Color(0xFF424242),
+                        color: AppColors.textHeading,
                         fontFamily: 'monospace',
                       ),
                     ),
@@ -609,10 +607,10 @@ class _AddTagFormState extends State<_AddTagForm> {
                   child: ElevatedButton(
                     onPressed: _isSubmitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF007A33),
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor:
-                          const Color(0xFF007A33).withValues(alpha: 0.5),
+                          AppColors.primary.withValues(alpha: 0.5),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -675,7 +673,7 @@ class _AddTagFormState extends State<_AddTagForm> {
           labelText: required ? '$label *' : label,
           hintText: hint,
           filled: _readOnly,
-          fillColor: const Color(0xFFF5F5F5),
+          fillColor: AppColors.inputFill,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
