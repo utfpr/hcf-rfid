@@ -8,6 +8,7 @@ import 'components/page_title_header.dart';
 import 'history/history_page.dart';
 import 'scan/scan_page.dart';
 import 'search/search_page.dart';
+import 'services/api_config.dart';
 import 'services/auth_service.dart';
 import 'services/reader_service.dart';
 import 'settings/settings_page.dart';
@@ -49,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _checkConnectivity() async {
     try {
-      final result = await InternetAddress.lookup('beontag.cm.utfpr.edu.br');
+      final result = await InternetAddress.lookup(Uri.parse(apiBaseUrl).host);
       if (mounted) {
         setState(() => _isNetworkConnected =
             result.isNotEmpty && result[0].rawAddress.isNotEmpty);
@@ -139,7 +140,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     _HomeMenuButton(
                       icon: Icons.nfc,
-                      label: 'Add Tag',
+                      label: 'Adicionar Tag',
                       onTap: () => _pushPage(context, const AddTagPage()),
                     ),
                     _HomeMenuButton(
@@ -167,7 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final connectedReader = _readerService.isPhysicallyConnected
         ? _readerService.connectedReader
         : null;
-    final user = AuthService().currentUser;
+    final user = AuthService().usuario;
 
     return Container(
       padding: const EdgeInsets.all(20),

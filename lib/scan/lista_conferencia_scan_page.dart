@@ -9,23 +9,24 @@ import '../services/reader_service.dart';
 import '../services/scan_session_service.dart';
 import '../theme/app_colors.dart';
 
-class ConferenceScanPage extends StatefulWidget {
-  final int conferenceId;
-  final String conferenceName;
-  final List<String> conferenceEpcs;
+class ListaConferenciaScanPage extends StatefulWidget {
+  final int listaConferenciaId;
+  final String listaConferenciaNome;
+  final List<String> tidsEsperados;
 
-  const ConferenceScanPage({
+  const ListaConferenciaScanPage({
     super.key,
-    required this.conferenceId,
-    required this.conferenceName,
-    required this.conferenceEpcs,
+    required this.listaConferenciaId,
+    required this.listaConferenciaNome,
+    required this.tidsEsperados,
   });
 
   @override
-  State<ConferenceScanPage> createState() => _ConferenceScanPageState();
+  State<ListaConferenciaScanPage> createState() =>
+      _ListaConferenciaScanPageState();
 }
 
-class _ConferenceScanPageState extends State<ConferenceScanPage> {
+class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
   final ScanSessionService _sessionService = ScanSessionService();
   final ReaderService _readerService = ReaderService();
 
@@ -117,8 +118,8 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
     final tid = (map['tid'] as String? ?? '').toString();
     if (tid.isEmpty) return;
 
-    // Only process tags that belong to the conference list
-    if (!widget.conferenceEpcs.contains(tid)) return;
+    // Only process tags that belong to the lista de conferência
+    if (!widget.tidsEsperados.contains(tid)) return;
 
     // Track tag details for session saving
     if (_scannedTagsMap.containsKey(tid)) {
@@ -159,8 +160,8 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
       endTime: ScanSessionService.formatDateTime(_endTime!),
       tags: _scannedTagsMap.values.toList(),
       isSynced: false,
-      conferenceId: widget.conferenceId,
-      conferenceEpcs: widget.conferenceEpcs,
+      listaConferenciaId: widget.listaConferenciaId,
+      tidsEsperados: widget.tidsEsperados,
     );
 
     await _sessionService.addSession(session);
@@ -177,7 +178,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
   @override
   Widget build(BuildContext context) {
     // Sort: unread first, then read
-    final sortedEpcs = List<String>.from(widget.conferenceEpcs)
+    final sortedTids = List<String>.from(widget.tidsEsperados)
       ..sort((a, b) {
         final aRead = _readTids.contains(a) ? 1 : 0;
         final bRead = _readTids.contains(b) ? 1 : 0;
@@ -209,7 +210,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
               ),
               // Title
               Text(
-                widget.conferenceName,
+                widget.listaConferenciaNome,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -229,9 +230,9 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
               // Status header card
               _buildStatusCard(),
               const SizedBox(height: 16),
-              // EPC list
+              // TID list
               Expanded(
-                child: sortedEpcs.isEmpty
+                child: sortedTids.isEmpty
                     ? Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
@@ -240,7 +241,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
                         ),
                         child: const Center(
                           child: Text(
-                            'No items in this conference',
+                            'Nenhum TID nesta lista de conferência',
                             style: TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 16,
@@ -251,15 +252,15 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
                     : SingleChildScrollView(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Column(
-                          children: List.generate(sortedEpcs.length, (index) {
-                            final tid = sortedEpcs[index];
+                          children: List.generate(sortedTids.length, (index) {
+                            final tid = sortedTids[index];
                             final isRead = _readTids.contains(tid);
                             final isExpanded = _expandedTids.contains(tid);
                             final tag = _scannedTagsMap[tid];
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 10),
-                              child: _EpcAccordionItem(
+                              child: _TidAccordionItem(
                                 tid: tid,
                                 isRead: isRead,
                                 isExpanded: isExpanded,
@@ -290,7 +291,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
   }
 
   Widget _buildStatusCard() {
-    final total = widget.conferenceEpcs.length;
+    final total = widget.tidsEsperados.length;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -327,7 +328,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
                 ValueListenableBuilder<int>(
                   valueListenable: _readCount,
                   builder: (context, count, child) => Text(
-                    '$count / $total read',
+                    '$count / $total encontrados',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
@@ -344,7 +345,7 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 const Text(
-                  'Remaining:',
+                  'Não encontrados:',
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 Text(
@@ -400,14 +401,14 @@ class _ConferenceScanPageState extends State<ConferenceScanPage> {
   }
 }
 
-class _EpcAccordionItem extends StatelessWidget {
+class _TidAccordionItem extends StatelessWidget {
   final String tid;
   final bool isRead;
   final bool isExpanded;
   final ScannedTag? tag;
   final VoidCallback onToggle;
 
-  const _EpcAccordionItem({
+  const _TidAccordionItem({
     required this.tid,
     required this.isRead,
     required this.isExpanded,
@@ -501,7 +502,7 @@ class _EpcAccordionItem extends StatelessWidget {
                         _buildInfoRow(
                             'Read count:', tag?.readCount.toString() ?? '0'),
                         const SizedBox(height: 6),
-                        _buildInfoRow('Status:', isRead ? 'Found' : 'Not found'),
+                        _buildInfoRow('Status:', isRead ? 'Encontrado' : 'Não encontrado'),
                       ],
                     ),
             ),

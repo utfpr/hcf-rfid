@@ -253,7 +253,7 @@ class _HistoryAccordionItem extends StatelessWidget {
                       style: const TextStyle(fontSize: 13, color: Colors.black87),
                       children: [
                         const TextSpan(
-                          text: 'Tags scanned: ',
+                          text: 'Tags lidas: ',
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         TextSpan(text: item.tagCount.toString()),
@@ -270,7 +270,7 @@ class _HistoryAccordionItem extends StatelessWidget {
                           style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         TextSpan(
-                          text: item.isSynced ? 'Synced' : 'Pending sync',
+                          text: item.isSynced ? 'Sincronizado' : 'Sincronização pendente',
                           style: TextStyle(
                             color: item.isSynced ? Colors.green : Colors.orange,
                           ),

@@ -6,7 +6,7 @@ import '../components/page_title_header.dart';
 import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
-import '../services/stock_service.dart';
+import '../services/rfid_service.dart';
 import '../theme/app_colors.dart';
 
 class SearchPage extends StatefulWidget {
@@ -19,7 +19,7 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final StockService _stockService = StockService();
+  final RfidService _rfidService = RfidService();
   final ReaderService _readerService = ReaderService();
 
   /// Whether the active reader is an Acura Bluetooth reader (otherwise C72).
@@ -56,10 +56,23 @@ class _SearchPageState extends State<SearchPage> {
 
   Future<void> _loadTids() async {
     try {
-      final tids = await _stockService.getTids();
+      final rfids = await _rfidService.listar(status: 'CONCLUIDO');
+      final tids = rfids
+          .where((r) => r.tidValido)
+          .map((r) => r.tid!.trim())
+          .toSet()
+          .toList();
       if (mounted) setState(() { _tids = tids; _isLoadingTids = false; });
-    } catch (_) {
-      if (mounted) setState(() => _isLoadingTids = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingTids = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Falha ao carregar TIDs: $e'),
+            backgroundColor: Colors.red[700],
+          ),
+        );
+      }
     }
   }
 
@@ -214,7 +227,7 @@ class _SearchPageState extends State<SearchPage> {
         Row(
           children: [
             const Text(
-              'Select TID (optional)',
+              'Selecionar TID (opcional)',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -235,7 +248,7 @@ class _SearchPageState extends State<SearchPage> {
         ),
         const SizedBox(height: 4),
         const Text(
-          'Leave empty to find the tag with the strongest signal',
+          'Deixe vazio para encontrar a tag com o sinal mais forte',
           style: TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 10),
@@ -257,7 +270,7 @@ class _SearchPageState extends State<SearchPage> {
                         child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
                       ),
                       SizedBox(width: 10),
-                      Text('Loading TIDs...', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
+                      Text('Carregando TIDs...', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
                     ],
                   ),
                 )
@@ -266,7 +279,7 @@ class _SearchPageState extends State<SearchPage> {
                     value: _selectedTid,
                     isExpanded: true,
                     hint: const Text(
-                      'All tags (best signal)',
+                      'Todas as tags (melhor sinal)',
                       style: TextStyle(color: AppColors.textMuted, fontSize: 14),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -276,11 +289,12 @@ class _SearchPageState extends State<SearchPage> {
                       const DropdownMenuItem<String>(
                         value: null,
                         child: Text(
-                          'All tags (best signal)',
+                          'Todas as tags (melhor sinal)',
                           style: TextStyle(fontSize: 14, color: AppColors.textMuted),
                         ),
                       ),
-                      ..._tids.map(
+                      // DropdownButton exige que o valor selecionado exista entre os itens.
+                      ...{?_selectedTid, ..._tids}.map(
                         (tid) => DropdownMenuItem<String>(
                           value: tid,
                           child: Text(
@@ -381,7 +395,7 @@ class _SearchPageState extends State<SearchPage> {
 
     String emptyMessage;
     if (_isScanning) {
-      emptyMessage = 'Waiting for tags...';
+      emptyMessage = 'Aguardando tags...';
     } else {
       emptyMessage = 'Press trigger to start reading';
     }

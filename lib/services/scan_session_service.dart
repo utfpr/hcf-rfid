@@ -86,8 +86,8 @@ class ScanSession {
   final int? rssi;
   final List<ScannedTag> tags;
   final bool isSynced;
-  final int? conferenceId;
-  final List<String> conferenceEpcs;
+  final int? listaConferenciaId;
+  final List<String> tidsEsperados;
 
   ScanSession({
     required this.sessionId,
@@ -96,8 +96,8 @@ class ScanSession {
     this.rssi,
     required this.tags,
     this.isSynced = false,
-    this.conferenceId,
-    this.conferenceEpcs = const [],
+    this.listaConferenciaId,
+    this.tidsEsperados = const [],
   });
 
   int get tagCount => tags.length;
@@ -109,8 +109,8 @@ class ScanSession {
         'rssi': rssi,
         'tags': tags.map((t) => t.toJson()).toList(),
         'isSynced': isSynced,
-        'conferenceId': conferenceId,
-        'conferenceEpcs': conferenceEpcs,
+        'listaConferenciaId': listaConferenciaId,
+        'tidsEsperados': tidsEsperados,
       };
 
   factory ScanSession.fromJson(Map<String, dynamic> json) => ScanSession(
@@ -122,11 +122,14 @@ class ScanSession {
             .map((t) => ScannedTag.fromJson(t as Map<String, dynamic>))
             .toList(),
         isSynced: json['isSynced'] as bool? ?? false,
-        conferenceId: json['conferenceId'] as int?,
-        conferenceEpcs: (json['conferenceEpcs'] as List<dynamic>?)
-                ?.map((e) => e as String)
-                .toList() ??
-            [],
+        // 'conferenceId'/'conferenceEpcs': chaves de sessões salvas antes da migração.
+        listaConferenciaId:
+            (json['listaConferenciaId'] ?? json['conferenceId']) as int?,
+        tidsEsperados:
+            ((json['tidsEsperados'] ?? json['conferenceEpcs']) as List<dynamic>?)
+                    ?.map((e) => e as String)
+                    .toList() ??
+                [],
       );
 
   ScanSession copyWith({
@@ -136,8 +139,8 @@ class ScanSession {
     int? rssi,
     List<ScannedTag>? tags,
     bool? isSynced,
-    int? conferenceId,
-    List<String>? conferenceEpcs,
+    int? listaConferenciaId,
+    List<String>? tidsEsperados,
   }) {
     return ScanSession(
       sessionId: sessionId ?? this.sessionId,
@@ -146,8 +149,8 @@ class ScanSession {
       rssi: rssi ?? this.rssi,
       tags: tags ?? this.tags,
       isSynced: isSynced ?? this.isSynced,
-      conferenceId: conferenceId ?? this.conferenceId,
-      conferenceEpcs: conferenceEpcs ?? this.conferenceEpcs,
+      listaConferenciaId: listaConferenciaId ?? this.listaConferenciaId,
+      tidsEsperados: tidsEsperados ?? this.tidsEsperados,
     );
   }
 }

@@ -83,7 +83,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService().currentUser;
+    final user = AuthService().usuario;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -104,7 +104,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildLoggedInView(AuthUser user) {
+  Widget _buildLoggedInView(Usuario user) {
     final initial = user.nome.isNotEmpty ? user.nome[0].toUpperCase() : '?';
     return Column(
       children: [
@@ -149,55 +149,29 @@ class _ProfilePageState extends State<ProfilePage> {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    if (user.funcao != null) ...[
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySoft,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          user.funcao!,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        user.tipoUsuarioNome,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
                         ),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
             ],
           ),
         ),
-        if (user.permitionNome != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.shield_outlined,
-                    size: 18, color: AppColors.textSecondary),
-                const SizedBox(width: 10),
-                Text(
-                  'Permissão: ${user.permitionNome}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textHeading,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
@@ -239,7 +213,7 @@ class _ProfilePageState extends State<ProfilePage> {
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Você está como visitante. Faça login para acessar suas conferências.',
+                  'Você está como visitante. Faça login para acessar suas listas de conferência.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.warningTextAlt,
