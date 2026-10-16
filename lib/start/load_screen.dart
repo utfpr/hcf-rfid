@@ -18,11 +18,15 @@ class _LoadScreenState extends State<LoadScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(_loadDuration, _navigate);
+    _navigate();
   }
 
   Future<void> _navigate() async {
-    await AuthService().loadFromStorage();
+    // A sessão (e a carga dos RFIDs) começa durante a tela de abertura.
+    await Future.wait([
+      AuthService().loadFromStorage(),
+      Future<void>.delayed(_loadDuration),
+    ]);
     if (!mounted) return;
     final destination = AuthService().isLoggedIn
         ? const ConnectReaderScreen()

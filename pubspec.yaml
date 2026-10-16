@@ -18,6 +18,18 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+# Regenerar com: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/hcf-logo.png
+  # Logo é branco com fundo transparente: fundo na cor primária do app.
+  adaptive_icon_background: "#007A33"
+  adaptive_icon_foreground: assets/hcf-logo.png
+  # Mantém o anel de texto do logo dentro da área segura das máscaras do launcher.
+  adaptive_icon_foreground_inset: 20
 
 flutter:
   uses-material-design: true

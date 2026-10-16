@@ -1,48 +1,45 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'api_client.dart';
 import 'api_config.dart';
+import 'catalogo_rfid_service.dart';
 
-class AuthUser {
-  final String id;
+class Usuario {
+  final int id;
   final String nome;
   final String email;
-  final String? funcao;
-  final String? permitionNome;
+  final int tipoUsuarioId;
 
-  const AuthUser({
+  const Usuario({
     required this.id,
     required this.nome,
     required this.email,
-    this.funcao,
-    this.permitionNome,
+    required this.tipoUsuarioId,
   });
 
-  factory AuthUser.fromJson(Map<String, dynamic> json) => AuthUser(
-        id: json['id'] as String,
+  factory Usuario.fromJson(Map<String, dynamic> json) => Usuario(
+        id: lerInt(json['id']),
         nome: json['nome'] as String,
         email: json['email'] as String,
-        funcao: json['funcao'] as String?,
-        permitionNome:
-            (json['permition'] as Map<String, dynamic>?)?['nome'] as String?,
+        tipoUsuarioId: lerInt(json['tipo_usuario_id']),
       );
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'nome': nome,
         'email': email,
-        'funcao': funcao,
-        'permitionNome': permitionNome,
+        'tipo_usuario_id': tipoUsuarioId,
       };
 
-  factory AuthUser.fromStorage(Map<String, dynamic> json) => AuthUser(
-        id: json['id'] as String,
-        nome: json['nome'] as String,
-        email: json['email'] as String,
-        funcao: json['funcao'] as String?,
-        permitionNome: json['permitionNome'] as String?,
-      );
+  String get tipoUsuarioNome => switch (tipoUsuarioId) {
+        1 => 'Curador',
+        2 => 'Operador',
+        3 => 'Identificador',
+        _ => 'Desconhecido',
+      };
 }
 
 class AuthService {
@@ -50,55 +47,94 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  static const String _storageKey = 'auth_user';
+  static const String _usuarioKey = 'auth_user';
+  static const String _tokenKey = 'auth_token';
+  static const Duration _timeout = Duration(seconds: 10);
 
-  AuthUser? _currentUser;
-  AuthUser? get currentUser => _currentUser;
-  bool get isLoggedIn => _currentUser != null;
+  /// Chamado quando o token expira e o usuário precisa logar de novo.
+  void Function()? aoExpirarSessao;
+
+  Usuario? _usuario;
+  String? _token;
+
+  Usuario? get usuario => _usuario;
+  String? get token => _token;
+  bool get isLoggedIn => _usuario != null && _token != null;
 
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_storageKey);
-    if (raw != null) {
-      try {
-        _currentUser = AuthUser.fromStorage(
-            jsonDecode(raw) as Map<String, dynamic>);
-      } catch (_) {
-        _currentUser = null;
-        await prefs.remove(_storageKey);
-      }
+    final raw = prefs.getString(_usuarioKey);
+    _token = prefs.getString(_tokenKey);
+
+    // Sessões da API antiga não têm token: força novo login.
+    if (raw == null || _token == null) {
+      await _limparSessao();
+      return;
     }
+    try {
+      _usuario = Usuario.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      await _limparSessao();
+      return;
+    }
+    unawaited(CatalogoRfidService().carregar());
   }
 
-  Future<AuthUser> login(String email, String senha) async {
+  Future<Usuario> login(String email, String senha) async {
     final response = await http
         .post(
-          Uri.parse('$apiBaseUrl/api/auth/login'),
+          Uri.parse('$apiBaseUrl/login'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'email': email.trim(), 'senha': senha}),
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(_timeout);
 
-    if (response.statusCode == 401) {
+    // Credenciais inválidas: 400 (código 100).
+    if (response.statusCode == 400 || response.statusCode == 401) {
       throw Exception('E-mail ou senha inválidos.');
+    }
+    // Validação do corpo (código 50): e-mail em formato inválido.
+    if (response.statusCode == 422) {
+      throw Exception('E-mail inválido.');
+    }
+    if (response.statusCode == 429) {
+      throw Exception(
+          'Muitas tentativas de login. Tente novamente em alguns minutos.');
     }
     if (response.statusCode != 200) {
       throw Exception('Erro ao autenticar (${response.statusCode}).');
     }
 
-    final user = AuthUser.fromJson(
-        jsonDecode(response.body) as Map<String, dynamic>);
-    _currentUser = user;
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    _token = json['token'] as String;
+    _usuario = Usuario.fromJson(json['usuario'] as Map<String, dynamic>);
 
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_storageKey, jsonEncode(user.toJson()));
+    await prefs.setString(_usuarioKey, jsonEncode(_usuario!.toJson()));
+    await prefs.setString(_tokenKey, _token!);
 
-    return user;
+    unawaited(CatalogoRfidService().carregar());
+    return _usuario!;
   }
 
-  Future<void> logout() async {
-    _currentUser = null;
+  /// O token de /login não tem renovação: ao expirar, encerra a sessão e volta ao login.
+  Future<void> expirarSessao() async {
+    // Várias requisições podem expirar juntas; só a primeira notifica.
+    if (_token == null) return;
+    await _limparSessao();
+    aoExpirarSessao?.call();
+  }
+
+  /// A API não tem logout para o token de /login: basta descartá-lo.
+  Future<void> logout() => _limparSessao();
+
+  Future<void> _limparSessao() async {
+    _usuario = null;
+    _token = null;
+    CatalogoRfidService().limpar();
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_storageKey);
+    await prefs.remove(_usuarioKey);
+    await prefs.remove(_tokenKey);
   }
 }

@@ -1,6 +1,6 @@
-# Beontag UTFPR Agro — Mobile
+# HCF UTFPR — Mobile
 
-Aplicativo Android desenvolvido em Flutter para leitura de tags RFID UHF em campo agrícola. Integra-se ao leitor Chainway C72 (embutido no dispositivo) e à API do backend Beontag UTFPR para realizar conferências de inventário, rastreamento de itens e consulta de estoque.
+Aplicativo Android desenvolvido em Flutter para leitura de tags RFID UHF em campo agrícola. Integra-se ao leitor Chainway C72 (embutido no dispositivo) e à API do backend HCF UTFPR para realizar conferências de inventário, rastreamento de itens e consulta de estoque.
 
 ---
 
@@ -22,7 +22,7 @@ Aplicativo Android desenvolvido em Flutter para leitura de tags RFID UHF em camp
 - Android SDK (API 21+)  
 - Dispositivo Android físico recomendado (Chainway C72 para leitura RFID completa)  
 - Emulador Android aceito, mas sem suporte a hardware RFID  
-- Backend Beontag UTFPR em execução (padrão: `https://beontag.cm.utfpr.edu.br`)
+- Backend HCF UTFPR em execução (padrão: `https://beontag.cm.utfpr.edu.br`)
 
 ---
 
@@ -45,7 +45,7 @@ Para apontar para um backend local:
 ```bash
 # 1. Clone o repositório
 git clone <url-do-repositorio>
-cd beontag-utfpr-agro-mobile
+cd hcf-rfid
 
 # 2. Instale as dependências
 flutter pub get

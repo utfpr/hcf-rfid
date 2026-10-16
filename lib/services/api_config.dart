@@ -1,21 +1,6 @@
-import 'auth_service.dart';
-
-/// Single source of truth for the backend API base URL.
+/// URL raiz da hcf-api: os paths (`/auth/login`, `/rfids/...`) são anexados a ela.
 ///
-/// Use 10.0.2.2 for Android emulator (maps to host machine localhost).
-/// Replace with your machine's local IP when running on a physical device.
-const String apiBaseUrl = 'https://beontag.cm.utfpr.edu.br';
-
-/// Returns the base HTTP headers for every API request.
-/// Includes X-User-Id and X-User-Name when the user is logged in.
-Map<String, String> apiHeaders({Map<String, String>? extra}) {
-  final user = AuthService().currentUser;
-  final headers = <String, String>{
-    if (extra != null) ...extra,
-    if (user != null) ...{
-      'X-User-Id': user.id,
-      'X-User-Name': Uri.encodeComponent(user.nome),
-    },
-  };
-  return headers;
-}
+/// No servidor publicado o proxy já adiciona o prefixo `/api`; rodando a API
+/// localmente, inclua-o (emulador Android: http://10.0.2.2:3000/api).
+// TODO: substituir pela URL de produção da hcf-api quando estiver no ar.
+const String apiBaseUrl = 'https://api.dev.hcf.cm.utfpr.edu.br';

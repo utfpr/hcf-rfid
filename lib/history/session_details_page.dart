@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../search/search_page.dart';
-import '../services/conference_service.dart';
-import '../services/rfid_tag_service.dart';
+import '../services/catalogo_rfid_service.dart';
+import '../services/lista_conferencia_service.dart';
 import '../services/scan_session_service.dart';
 import '../theme/app_colors.dart';
 
@@ -46,11 +46,11 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
     if (session != null) {
       final readTids = session.tags.map((t) => t.tid).toSet();
 
-      // Build list from ALL conference EPCs, marking which were read
+      // Build list from ALL expected TIDs, marking which were read
       final List<TagItem> items = [];
-      if (session.conferenceEpcs.isNotEmpty) {
-        for (int i = 0; i < session.conferenceEpcs.length; i++) {
-          final tid = session.conferenceEpcs[i];
+      if (session.tidsEsperados.isNotEmpty) {
+        for (int i = 0; i < session.tidsEsperados.length; i++) {
+          final tid = session.tidsEsperados[i];
           final scannedTag = session.tags.cast<ScannedTag?>().firstWhere(
             (t) => t?.tid == tid,
             orElse: () => null,
@@ -67,7 +67,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
           ));
         }
       } else {
-        // Fallback: no conference EPCs stored, show only scanned tags
+        // Fallback: no expected TIDs stored, show only scanned tags
         for (final tag in session.tags) {
           items.add(TagItem(
             id: tag.id,
@@ -82,21 +82,14 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
         }
       }
 
-      // Enrich EPC from backend (canonical value stored in DB)
-      final rfidService = RfidTagService();
-      final uniqueTids = items.map((i) => i.tid).where((t) => t.isNotEmpty).toSet();
-      final Map<String, String> tidToEpc = {};
-      await Future.wait(uniqueTids.map((tid) async {
-        try {
-          final tag = await rfidService.getByTagId(tid);
-          final epc = tag?['epc'];
-          if (epc != null && (epc as String).isNotEmpty) tidToEpc[tid] = epc;
-        } catch (_) {}
-      }));
+      // EPC salvo no banco (hex), a partir da lista de RFIDs em memória.
+      final catalogo = CatalogoRfidService();
+      await catalogo.carregar();
+      if (!mounted) return;
 
       final enrichedItems = items.map((item) {
-        final backendEpc = tidToEpc[item.tid];
-        if (backendEpc == null) return item;
+        final backendEpc = catalogo.buscarPorTid(item.tid)?.epcHex;
+        if (backendEpc == null || backendEpc.isEmpty) return item;
         return TagItem(
           id: item.id,
           tid: item.tid,
@@ -285,7 +278,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                         child: _filteredTagItems.isEmpty
                             ? const Center(
                                 child: Text(
-                                  'No tags in this session',
+                                  'Nenhuma tag nesta sessão',
                                   style: TextStyle(
                                     color: AppColors.textMuted,
                                     fontSize: 16,
@@ -355,8 +348,8 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                         ),
                   label: Text(
                     _isSyncing
-                        ? 'Syncing...'
-                        : (_session!.isSynced ? 'Synced' : 'Sync'),
+                        ? 'Sincronizando...'
+                        : (_session!.isSynced ? 'Sincronizado' : 'Sincronizar'),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -384,21 +377,36 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
     if (_session == null || _session!.isSynced || _isSyncing) return;
     setState(() => _isSyncing = true);
     try {
-      if (_session!.conferenceId != null) {
-        final scannedTids = _session!.tags.map((t) => t.tid).toSet();
-        await ConferenceService().submitInventory(
-          conferenceId: _session!.conferenceId!,
-          scannedEpcs: scannedTids,
-          conferenceEpcs: _session!.conferenceEpcs,
+      Inventario? inventario;
+      if (_session!.listaConferenciaId != null) {
+        final tidsLidos = _session!.tags
+            .map((t) => t.tid.trim())
+            .where((tid) => tid.isNotEmpty)
+            .toSet()
+            .toList();
+        inventario = await ListaConferenciaService().registrarInventario(
+          _session!.listaConferenciaId!,
+          tids: tidsLidos,
         );
       }
       await _sessionService.markAsSynced(widget.sessionId);
       await _loadSession();
+      if (inventario != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Inventário registrado: ${inventario.totalEncontrados} de '
+              '${inventario.totalEsperado} encontrados.',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sync failed: $e'),
+            content: Text('Falha ao sincronizar: $e'),
             backgroundColor: Colors.red[700],
           ),
         );
@@ -739,7 +747,7 @@ class _TagAccordionItem extends StatelessWidget {
                   const SizedBox(height: 6),
                   _buildInfoRow('EPC:', item.epc.isNotEmpty ? item.epc : 'Not read'),
                   const SizedBox(height: 6),
-                  _buildInfoRow('Status:', item.isRead ? 'Found' : 'Not found'),
+                  _buildInfoRow('Status:', item.isRead ? 'Encontrado' : 'Não encontrado'),
                   const SizedBox(height: 6),
                   _buildInfoRow('Time stamp:', item.timeStamp),
                   const SizedBox(height: 6),
@@ -755,7 +763,7 @@ class _TagAccordionItem extends StatelessWidget {
                         child: IconButton(
                           padding: EdgeInsets.zero,
                           icon: const Icon(Icons.search, size: 20, color: AppColors.primary),
-                          tooltip: 'Search this tag',
+                          tooltip: 'Buscar esta tag',
                           onPressed: onSearch,
                         ),
                       ),

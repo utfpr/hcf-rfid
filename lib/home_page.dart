@@ -8,6 +8,7 @@ import 'components/page_title_header.dart';
 import 'history/history_page.dart';
 import 'scan/scan_page.dart';
 import 'search/search_page.dart';
+import 'services/api_config.dart';
 import 'services/auth_service.dart';
 import 'services/reader_service.dart';
 import 'settings/settings_page.dart';
@@ -49,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> _checkConnectivity() async {
     try {
-      final result = await InternetAddress.lookup('beontag.cm.utfpr.edu.br');
+      final result = await InternetAddress.lookup(Uri.parse(apiBaseUrl).host);
       if (mounted) {
         setState(() => _isNetworkConnected =
             result.isNotEmpty && result[0].rawAddress.isNotEmpty);
@@ -106,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
               // 3x2 grid
               Expanded(
                 child: GridView.count(
-                  crossAxisCount: 3,
+                  crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   childAspectRatio: 0.85,
@@ -115,17 +116,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     _HomeMenuButton(
                       icon: Icons.document_scanner,
-                      label: 'Scan',
+                      label: 'Conferência',
                       onTap: () => _pushPage(context, const ScanPage()),
                     ),
-                    _HomeMenuButton(
-                      icon: Icons.history,
-                      label: 'History',
-                      onTap: () => _pushPage(context, const HistoryPage()),
-                    ),
+                    // _HomeMenuButton(
+                    //   icon: Icons.history,
+                    //   label: 'Histórico',
+                    //   onTap: () => _pushPage(context, const HistoryPage()),
+                    // ),
                     _HomeMenuButton(
                       icon: Icons.settings,
-                      label: 'Settings',
+                      label: 'Configurações',
                       onTap: () => Navigator.of(context)
                           .push(MaterialPageRoute<void>(
                             builder: (_) => const SettingsPage(),
@@ -134,17 +135,17 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     _HomeMenuButton(
                       icon: Icons.document_scanner_outlined,
-                      label: 'Search',
+                      label: 'Busca',
                       onTap: () => _pushPage(context, const SearchPage()),
                     ),
-                    _HomeMenuButton(
-                      icon: Icons.nfc,
-                      label: 'Add Tag',
-                      onTap: () => _pushPage(context, const AddTagPage()),
-                    ),
+                    // _HomeMenuButton(
+                    //   icon: Icons.nfc,
+                    //   label: 'Adicionar Tag',
+                    //   onTap: () => _pushPage(context, const AddTagPage()),
+                    // ),
                     _HomeMenuButton(
                       icon: Icons.info_outline,
-                      label: 'About',
+                      label: 'Sobre',
                       onTap: () => _pushPage(context, const AboutPage()),
                     ),
                   ],
@@ -167,7 +168,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final connectedReader = _readerService.isPhysicallyConnected
         ? _readerService.connectedReader
         : null;
-    final user = AuthService().currentUser;
+    final user = AuthService().usuario;
 
     return Container(
       padding: const EdgeInsets.all(20),

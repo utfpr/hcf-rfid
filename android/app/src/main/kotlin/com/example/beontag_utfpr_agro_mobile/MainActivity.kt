@@ -3,6 +3,7 @@ package com.example.beontag_utfpr_agro_mobile
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import android.view.KeyEvent
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -14,6 +15,8 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
 
     companion object {
+        private const val TAG = "MainActivity"
+
         private const val C72_METHOD_CHANNEL = "com.example.beontag_utfpr_agro_mobile/c72"
         private const val C72_EVENT_CHANNEL = "com.example.beontag_utfpr_agro_mobile/c72_tags"
         private const val C72_TRIGGER_EVENT_CHANNEL = "com.example.beontag_utfpr_agro_mobile/c72_trigger"
@@ -44,6 +47,10 @@ class MainActivity : FlutterActivity() {
     private var btlTagEventSink: EventChannel.EventSink? = null
     private var btlTriggerEventSink: EventChannel.EventSink? = null
 
+    private var isInForeground = false
+    private var isKeepAliveRunning = false
+    private val taskRemovedListener: () -> Unit = { disconnectAllReaders() }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode in TRIGGER_KEY_CODES) {
             c72TriggerEventSink?.success(true)
@@ -62,7 +69,12 @@ class MainActivity : FlutterActivity() {
 
     override fun onStart() {
         super.onStart()
-        requestBluetoothPermissionsIfNeeded()
+        isInForeground = true
+        // Recovers the service if a reader was connected without it (e.g. C72 auto-init in startScan).
+        if (c72Wrapper?.isConnected() == true || btlWrapper?.isConnected() == true) {
+            startKeepAliveService()
+        }
+        requestRuntimePermissionsIfNeeded()
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -70,6 +82,7 @@ class MainActivity : FlutterActivity() {
 
         c72Wrapper = C72ReaderWrapper(applicationContext)
         btlWrapper = BTLReaderWrapper(applicationContext)
+        ReaderConnectionService.onTaskRemovedListener = taskRemovedListener
 
         setupC72Channels(flutterEngine)
         setupBTLChannels(flutterEngine)
@@ -93,12 +106,17 @@ class MainActivity : FlutterActivity() {
                 "initReader" -> {
                     try {
                         c72Wrapper?.initReader()
+                        startKeepAliveService()
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("INIT_ERROR", e.message ?: "C72 init failed", null)
                     }
                 }
-                "disconnectReader" -> { c72Wrapper?.disconnectReader(); result.success(null) }
+                "disconnectReader" -> {
+                    c72Wrapper?.disconnectReader()
+                    stopKeepAliveServiceIfIdle()
+                    result.success(null)
+                }
                 "setPower" -> {
                     val power = (call.arguments as? Number)?.toInt() ?: 30
                     result.success(c72Wrapper?.setPower(power) == true)
@@ -137,7 +155,8 @@ class MainActivity : FlutterActivity() {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                     btlTriggerEventSink = events
                     btlWrapper?.onTriggerChanged = { pressed ->
-                        runOnUiThread { btlTriggerEventSink?.success(pressed) }
+                        // Ignore the BTL trigger while minimized so no read starts in background.
+                        runOnUiThread { if (isInForeground) btlTriggerEventSink?.success(pressed) }
                     }
                 }
                 override fun onCancel(arguments: Any?) {
@@ -154,13 +173,18 @@ class MainActivity : FlutterActivity() {
                     Thread {
                         try {
                             btlWrapper?.connect()
+                            runOnUiThread { startKeepAliveService() }
                             result.success(true)
                         } catch (e: Exception) {
                             result.error("BTL_CONNECT_ERROR", e.message ?: "BTL connect failed", null)
                         }
                     }.start()
                 }
-                "disconnectReader" -> { btlWrapper?.disconnect(); result.success(null) }
+                "disconnectReader" -> {
+                    btlWrapper?.disconnect()
+                    stopKeepAliveServiceIfIdle()
+                    result.success(null)
+                }
                 "setPower" -> {
                     val power = (call.arguments as? Number)?.toInt() ?: 29
                     result.success(btlWrapper?.setPower(power) == true)
@@ -194,30 +218,65 @@ class MainActivity : FlutterActivity() {
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     override fun onDestroy() {
-        c72Wrapper?.disconnectReader()
-        btlWrapper?.disconnect()
+        disconnectAllReaders()
+        if (ReaderConnectionService.onTaskRemovedListener === taskRemovedListener) {
+            ReaderConnectionService.onTaskRemovedListener = null
+        }
+        ReaderConnectionService.stop(applicationContext)
+        isKeepAliveRunning = false
         super.onDestroy()
     }
 
     override fun onStop() {
-        c72Wrapper?.disconnectReader()
-        btlWrapper?.disconnect()
+        isInForeground = false
+        // Keep the reader connected; only end an active read and let Flutter pages see a trigger release.
+        c72Wrapper?.stopScan()
+        btlWrapper?.stopScan()
+        c72TriggerEventSink?.success(false)
+        btlTriggerEventSink?.success(false)
         super.onStop()
     }
 
-    // ── Bluetooth permissions ─────────────────────────────────────────────────
+    private fun disconnectAllReaders() {
+        c72Wrapper?.disconnectReader()
+        btlWrapper?.disconnect()
+    }
 
-    private fun requestBluetoothPermissionsIfNeeded() {
+    // ── Keep-alive foreground service ─────────────────────────────────────────
+
+    private fun startKeepAliveService() {
+        if (isKeepAliveRunning) return
+        try {
+            ReaderConnectionService.start(applicationContext)
+            isKeepAliveRunning = true
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not start keep-alive service: ${e.message}")
+        }
+    }
+
+    private fun stopKeepAliveServiceIfIdle() {
+        if (!isKeepAliveRunning) return
+        if (c72Wrapper?.isConnected() == true || btlWrapper?.isConnected() == true) return
+        ReaderConnectionService.stop(applicationContext)
+        isKeepAliveRunning = false
+    }
+
+    // ── Runtime permissions ───────────────────────────────────────────────────
+
+    private fun requestRuntimePermissionsIfNeeded() {
+        val required = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val needed = arrayOf(
-                Manifest.permission.BLUETOOTH_CONNECT,
-                Manifest.permission.BLUETOOTH_SCAN
-            ).filter {
-                ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-            }
-            if (needed.isNotEmpty()) {
-                ActivityCompat.requestPermissions(this, needed.toTypedArray(), BT_PERMISSION_REQUEST_CODE)
-            }
+            required += Manifest.permission.BLUETOOTH_CONNECT
+            required += Manifest.permission.BLUETOOTH_SCAN
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            required += Manifest.permission.POST_NOTIFICATIONS
+        }
+        val needed = required.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (needed.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, needed.toTypedArray(), BT_PERMISSION_REQUEST_CODE)
         }
     }
 }

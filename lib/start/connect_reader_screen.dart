@@ -110,7 +110,7 @@ class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(
-            builder: (_) => const MyHomePage(title: 'Beontag UTFPR Agro'),
+            builder: (_) => const MyHomePage(title: 'HCF UTFPR'),
           ),
         );
       }
@@ -211,7 +211,7 @@ class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
                   onPressed: () {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute<void>(
-                        builder: (_) => const MyHomePage(title: 'Beontag UTFPR Agro'),
+                        builder: (_) => const MyHomePage(title: 'HCF UTFPR'),
                       ),
                     );
                   },

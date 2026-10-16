@@ -1,13 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../components/page_title_header.dart';
 import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
-import '../services/rfid_tag_service.dart';
+import '../services/rfid_service.dart';
 import '../theme/app_colors.dart';
 
 class AddTagPage extends StatefulWidget {
@@ -24,11 +23,12 @@ class _AddTagPageState extends State<AddTagPage> {
 
   // Tag existence check
   bool _isCheckingTag = false;
-  Map<String, dynamic>? _existingTag; // non-null → tag already in DB
+  RfidValidado? _existingTag; // non-null → tag already in DB
+  String? _checkError;
 
   final Map<String, int> _tagsMap = {};
   final Map<String, String> _epcByTid = {};
-  final RfidTagService _service = RfidTagService();
+  final RfidService _service = RfidService();
   final ReaderService _readerService = ReaderService();
 
   bool get _isBTL =>
@@ -80,6 +80,7 @@ class _AddTagPageState extends State<AddTagPage> {
       _bestTid = null;
       _bestRssi = -999;
       _existingTag = null;
+      _checkError = null;
       _isCheckingTag = false;
       _tagsMap.clear();
       _epcByTid.clear();
@@ -134,26 +135,26 @@ class _AddTagPageState extends State<AddTagPage> {
   Future<void> _checkTag(String tid) async {
     setState(() => _isCheckingTag = true);
     try {
-      final existing = await _service.getByTagId(tid);
+      final existing = await _service.validarTid(tid);
       if (mounted) {
         setState(() {
           _existingTag = existing;
           _isCheckingTag = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _isCheckingTag = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _checkError = 'Não foi possível consultar a tag: $e';
+          _isCheckingTag = false;
+        });
+      }
     }
   }
 
-  String get _deviceName {
-    final reader = _readerService.connectedReader;
-    if (reader == null) return '';
-    return reader.nickname?.isNotEmpty == true ? reader.nickname! : reader.model;
-  }
-
-  void _showForm({required bool readOnly}) {
-    if (_bestTid == null) return;
+  void _showDetails() {
+    final rfid = _existingTag;
+    if (rfid == null) return;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -161,12 +162,10 @@ class _AddTagPageState extends State<AddTagPage> {
       useSafeArea: true,
       builder: (_) => Padding(
         padding: const EdgeInsets.only(top: 40),
-        child: _AddTagForm(
-        tid: _bestTid!,
-        scannedEpc: _epcByTid[_bestTid!],
-        existingTag: readOnly ? _existingTag : null,
-        deviceName: _deviceName,
-      ),
+        child: _TagDetailsSheet(
+          rfid: rfid,
+          scannedEpc: _epcByTid[rfid.tid],
+        ),
       ),
     );
   }
@@ -181,7 +180,7 @@ class _AddTagPageState extends State<AddTagPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const PageTitleHeader(title: 'Add Tag'),
+              const PageTitleHeader(title: 'Adicionar Tag'),
               const SizedBox(height: 24),
               _buildInfoCard(),
               const SizedBox(height: 16),
@@ -261,15 +260,17 @@ class _AddTagPageState extends State<AddTagPage> {
   Widget _buildTagDisplay() {
     String message;
     if (_isScanning) {
-      message = _bestTid == null ? 'Waiting for tags...' : 'Reading...';
+      message = _bestTid == null ? 'Aguardando tags...' : 'Lendo...';
     } else if (_isCheckingTag) {
-      message = 'Checking tag...';
+      message = 'Consultando tag...';
     } else if (_bestTid == null) {
-      message = 'Press trigger to start scanning';
+      message = 'Pressione o gatilho para iniciar a leitura';
+    } else if (_checkError != null) {
+      message = _checkError!;
     } else if (_existingTag != null) {
-      message = 'Tag already registered in database';
+      message = 'Tag já cadastrada no banco de dados';
     } else {
-      message = 'New tag — press "Add Tag" to register';
+      message = 'Tag não cadastrada. O cadastro de tags não está disponível na nova API.';
     }
 
     return Container(
@@ -326,15 +327,16 @@ class _AddTagPageState extends State<AddTagPage> {
   }
 
   Widget _buildActionButton() {
-    if (_isCheckingTag) return const SizedBox.shrink();
+    if (_isCheckingTag || _checkError != null) return const SizedBox.shrink();
 
     final isExisting = _existingTag != null;
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: () => _showForm(readOnly: isExisting),
+        // Sem rota de cadastro na nova API: apenas a consulta fica habilitada.
+        onPressed: isExisting ? _showDetails : null,
         icon: Icon(isExisting ? Icons.visibility : Icons.add),
-        label: Text(isExisting ? 'Ver Tag' : 'Add Tag'),
+        label: Text(isExisting ? 'Ver Tag' : 'Adicionar Tag'),
         style: ElevatedButton.styleFrom(
           backgroundColor:
               isExisting ? AppColors.textSecondary : AppColors.primary,
@@ -352,339 +354,157 @@ class _AddTagPageState extends State<AddTagPage> {
 }
 
 // ──────────────────────────────────────────────
-// Bottom-sheet form
+// Bottom-sheet de detalhes (somente leitura)
 // ──────────────────────────────────────────────
 
-class _AddTagForm extends StatefulWidget {
-  final String tid;
+class _TagDetailsSheet extends StatelessWidget {
+  final RfidValidado rfid;
 
-  /// EPC read from the tag during the scan, used to pre-fill the EPC field.
+  /// EPC read from the tag during the scan.
   final String? scannedEpc;
 
-  /// When non-null the form is in read-only / "Ver Tag" mode.
-  final Map<String, dynamic>? existingTag;
-
-  /// Display name of the connected reader device, used to auto-fill fields.
-  final String deviceName;
-
-  const _AddTagForm({
-    required this.tid,
-    required this.deviceName,
-    this.scannedEpc,
-    this.existingTag,
-  });
-
-  @override
-  State<_AddTagForm> createState() => _AddTagFormState();
-}
-
-class _AddTagFormState extends State<_AddTagForm> {
-  final _formKey = GlobalKey<FormState>();
-
-  late final TextEditingController _typeController;
-  late final TextEditingController _mainLabelController;
-  late final TextEditingController _epcController;
-  late final TextEditingController _readerController;
-  late final TextEditingController _protocolController;
-  late final TextEditingController _antennaController;
-  late final TextEditingController _userController;
-
-  bool _isSubmitting = false;
-  String? _errorMessage;
-
-  bool get _readOnly => widget.existingTag != null;
-
-  final RfidTagService _service = RfidTagService();
-
-  @override
-  void initState() {
-    super.initState();
-    final tag = widget.existingTag;
-    _typeController =
-        TextEditingController(text: tag?['type']?.toString() ?? '');
-    _mainLabelController =
-        TextEditingController(text: tag?['description']?.toString() ?? '');
-    _epcController = TextEditingController(
-      text: tag?['epc']?.toString() ?? widget.scannedEpc ?? '',
-    );
-    _readerController = TextEditingController(
-      text: widget.deviceName,
-    );
-    _protocolController = TextEditingController(
-      text: 'EPC Gen2',
-    );
-    _antennaController = TextEditingController(
-      text: '1',
-    );
-    _userController = TextEditingController(
-      text: widget.deviceName,
-    );
-  }
-
-  @override
-  void dispose() {
-    _typeController.dispose();
-    _mainLabelController.dispose();
-    _epcController.dispose();
-    _readerController.dispose();
-    _protocolController.dispose();
-    _antennaController.dispose();
-    _userController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final dto = <String, dynamic>{
-        'tid': widget.tid,
-        'description': _mainLabelController.text.trim(),
-        'type': _typeController.text.trim(),
-      };
-
-      final epc = _epcController.text.trim();
-      if (epc.isNotEmpty) dto['epc'] = epc;
-
-      await _service.createTag(dto);
-
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tag added successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _isSubmitting = false;
-        _errorMessage = 'Não foi possível adicionar a tag.';
-      });
-    }
-  }
+  const _TagDetailsSheet({required this.rfid, this.scannedEpc});
 
   @override
   Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottom),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
       child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle bar
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Text(
-                    _readOnly ? 'Tag Registrada' : 'Add Tag to Database',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textHeading,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Text(
+                  'Tag cadastrada',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textHeading,
+                  ),
+                ),
+                if (rfid.statusRfid != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.warningBackground,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.warningBorder),
+                    ),
+                    child: Text(
+                      rfid.statusRfid!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.warningText,
+                      ),
                     ),
                   ),
-                  if (_readOnly) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningBackground,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.warningBorder),
-                      ),
-                      child: const Text(
-                        'Tag existente',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.warningText,
-                        ),
-                      ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // TID read-only display
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primarySofter,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'TID (lido)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    rfid.tid,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textHeading,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
+            ),
+            const SizedBox(height: 16),
 
-              // EPC read-only display
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySofter,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
+            _buildField('Tombo HCF', rfid.tomboHcf),
+            _buildField('Nome científico', rfid.nomeCientifico),
+            _buildField('Coletor principal', rfid.coletorPrincipal),
+            _buildField('EPC', rfid.epc ?? '-'),
+            _buildField('EPC (hex)', rfid.epcHex ?? '-'),
+            if (scannedEpc != null && scannedEpc!.isNotEmpty)
+              _buildField('EPC (lido)', scannedEpc!),
+
+            const SizedBox(height: 8),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'TID (scanned)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.tid,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textHeading,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
-                ),
+                child: const Text('Fechar'),
               ),
-              const SizedBox(height: 16),
-
-              _buildField(_typeController, 'Type',
-                  required: true, hint: 'e.g. Animal, Equipment'),
-              _buildField(_mainLabelController, 'Description', required: true, hint: 'Tag description'),
-              _buildField(_epcController, 'EPC', hint: 'e.g. E200...', inputFormatters: [LengthLimitingTextInputFormatter(16)]),
-              _buildField(_readerController, 'Reader',
-                  required: true, hint: 'Reader identifier'),
-              _buildField(_protocolController, 'Protocol', required: true),
-              _buildField(
-                _antennaController,
-                'Antenna',
-                required: true,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Required';
-                  if (int.tryParse(v.trim()) == null) return 'Must be a number';
-                  return null;
-                },
-              ),
-              _buildField(_userController, 'User',
-                  required: true, hint: 'Username / operator'),
-
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: Colors.red, fontSize: 13),
-                ),
-              ],
-
-              const SizedBox(height: 20),
-
-              if (!_readOnly)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor:
-                          AppColors.primary.withValues(alpha: 0.5),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    child: _isSubmitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text('Save Tag'),
-                  ),
-                )
-              else
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('Fechar'),
-                  ),
-                ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildField(
-    TextEditingController controller,
-    String label, {
-    bool required = false,
-    String? hint,
-    TextInputType keyboardType = TextInputType.text,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
-  }) {
+  Widget _buildField(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: TextFormField(
-        controller: controller,
-        keyboardType: keyboardType,
-        inputFormatters: inputFormatters,
-        enabled: !_readOnly,
+      child: InputDecorator(
         decoration: InputDecoration(
-          labelText: required ? '$label *' : label,
-          hintText: hint,
-          filled: _readOnly,
+          labelText: label,
+          filled: true,
           fillColor: AppColors.inputFill,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         ),
-        validator: _readOnly
-            ? null
-            : (validator ??
-                (required
-                    ? (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Required' : null
-                    : null)),
+        child: SelectableText(
+          value,
+          style: const TextStyle(fontSize: 14, color: AppColors.textHeading),
+        ),
       ),
     );
   }

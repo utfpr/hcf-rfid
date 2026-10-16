@@ -16,7 +16,7 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   String get _profileSubtitle {
-    final user = AuthService().currentUser;
+    final user = AuthService().usuario;
     return user != null ? user.email : 'Visitante';
   }
 

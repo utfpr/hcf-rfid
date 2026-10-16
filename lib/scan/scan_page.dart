@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../components/page_title_header.dart';
-import '../services/conference_service.dart';
+import '../services/lista_conferencia_service.dart';
 import '../theme/app_colors.dart';
-import 'conference_scan_page.dart';
+import 'lista_conferencia_scan_page.dart';
 
 class ScanPage extends StatefulWidget {
   const ScanPage({super.key});
@@ -13,63 +13,76 @@ class ScanPage extends StatefulWidget {
 }
 
 class _ScanPageState extends State<ScanPage> {
-  final ConferenceService _conferenceService = ConferenceService();
+  final ListaConferenciaService _listaConferenciaService =
+      ListaConferenciaService();
 
-  int? _selectedConferenceId;
-  List<Conference> _conferences = [];
-  bool _loadingConferences = false;
-  bool _loadingDetail = false;
+  int? _selectedListaConferenciaId;
+  List<ListaConferencia> _listasConferencias = [];
+  bool _loadingListas = false;
+  bool _loadingRfids = false;
 
   @override
   void initState() {
     super.initState();
-    _loadConferences();
+    _loadListasConferencias();
   }
 
-  Future<void> _loadConferences() async {
-    setState(() => _loadingConferences = true);
+  Future<void> _loadListasConferencias() async {
+    setState(() => _loadingListas = true);
     try {
-      final conferences = await _conferenceService.getAll();
+      final listas = await _listaConferenciaService.listar();
       if (mounted) {
         setState(() {
-          _conferences = conferences;
-          _loadingConferences = false;
+          _listasConferencias = listas;
+          _loadingListas = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loadingConferences = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingListas = false);
+        _showError('Falha ao carregar listas de conferência: $e');
+      }
     }
   }
 
   Future<void> _onStart() async {
-    if (_selectedConferenceId == null) return;
-    setState(() => _loadingDetail = true);
+    final lista = _listasConferencias
+        .where((l) => l.id == _selectedListaConferenciaId)
+        .firstOrNull;
+    if (lista == null) return;
+    setState(() => _loadingRfids = true);
     try {
-      final detail =
-          await _conferenceService.getById(_selectedConferenceId!);
+      final rfids = await _listaConferenciaService.listarRfids(lista.id);
+      final tids = rfids
+          .where((r) => r.tidValido)
+          .map((r) => r.tid!.trim())
+          .toSet()
+          .toList();
       if (mounted) {
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => ConferenceScanPage(
-              conferenceId: detail.id,
-              conferenceName: detail.name,
-              conferenceEpcs: detail.epcs,
+            builder: (_) => ListaConferenciaScanPage(
+              listaConferenciaId: lista.id,
+              listaConferenciaNome: lista.nome,
+              tidsEsperados: tids,
             ),
           ),
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load conference: $e'),
-            backgroundColor: Colors.red[700],
-          ),
-        );
-      }
+      if (mounted) _showError('Falha ao carregar lista de conferência: $e');
     } finally {
-      if (mounted) setState(() => _loadingDetail = false);
+      if (mounted) setState(() => _loadingRfids = false);
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[700],
+      ),
+    );
   }
 
   @override
@@ -84,7 +97,7 @@ class _ScanPageState extends State<ScanPage> {
             children: [
               const PageTitleHeader(title: 'Scan'),
               const SizedBox(height: 24),
-              _buildConferenceCard(),
+              _buildListaConferenciaCard(),
               const Spacer(),
               _buildStartButton(),
             ],
@@ -94,7 +107,7 @@ class _ScanPageState extends State<ScanPage> {
     );
   }
 
-  Widget _buildConferenceCard() {
+  Widget _buildListaConferenciaCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -107,7 +120,7 @@ class _ScanPageState extends State<ScanPage> {
           Row(
             children: [
               const Text(
-                'Select conference',
+                'Selecionar lista de conferência',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -122,14 +135,14 @@ class _ScanPageState extends State<ScanPage> {
                   padding: EdgeInsets.zero,
                   icon: const Icon(Icons.refresh,
                       color: Colors.white70, size: 20),
-                  onPressed: _loadingConferences ? null : _loadConferences,
+                  onPressed: _loadingListas ? null : _loadListasConferencias,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           const Text(
-            'Choose a conference list to start scanning',
+            'Escolha uma lista de conferência para iniciar a leitura',
             style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
           const SizedBox(height: 10),
@@ -141,7 +154,7 @@ class _ScanPageState extends State<ScanPage> {
               border:
                   Border.all(color: AppColors.border, width: 1),
             ),
-            child: _loadingConferences
+            child: _loadingListas
                 ? const Padding(
                     padding: EdgeInsets.symmetric(
                         vertical: 14, horizontal: 16),
@@ -154,7 +167,7 @@ class _ScanPageState extends State<ScanPage> {
                               CircularProgressIndicator(strokeWidth: 2),
                         ),
                         SizedBox(width: 10),
-                        Text('Loading conferences…',
+                        Text('Carregando listas de conferência…',
                             style: TextStyle(
                                 fontSize: 14,
                                 color: AppColors.textSecondary)),
@@ -163,7 +176,7 @@ class _ScanPageState extends State<ScanPage> {
                   )
                 : DropdownButtonHideUnderline(
                     child: DropdownButton<int>(
-                      value: _selectedConferenceId,
+                      value: _selectedListaConferenciaId,
                       isExpanded: true,
                       padding:
                           const EdgeInsets.symmetric(horizontal: 16),
@@ -171,15 +184,15 @@ class _ScanPageState extends State<ScanPage> {
                           color: AppColors.textSecondary),
                       dropdownColor: Colors.white,
                       hint: const Text(
-                        'Select a conference',
+                        'Selecione uma lista de conferência',
                         style: TextStyle(
                             fontSize: 14, color: AppColors.textMuted),
                       ),
-                      items: _conferences
-                          .map((c) => DropdownMenuItem<int>(
-                                value: c.id,
+                      items: _listasConferencias
+                          .map((l) => DropdownMenuItem<int>(
+                                value: l.id,
                                 child: Text(
-                                  c.displayName,
+                                  l.displayName,
                                   style: const TextStyle(
                                       fontSize: 14,
                                       color: AppColors.textPrimary),
@@ -188,7 +201,7 @@ class _ScanPageState extends State<ScanPage> {
                           .toList(),
                       onChanged: (value) {
                         setState(
-                            () => _selectedConferenceId = value);
+                            () => _selectedListaConferenciaId = value);
                       },
                     ),
                   ),
@@ -200,7 +213,7 @@ class _ScanPageState extends State<ScanPage> {
 
   Widget _buildStartButton() {
     final enabled =
-        _selectedConferenceId != null && !_loadingDetail;
+        _selectedListaConferenciaId != null && !_loadingRfids;
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -214,7 +227,7 @@ class _ScanPageState extends State<ScanPage> {
               borderRadius: BorderRadius.circular(28)),
           elevation: 0,
         ),
-        child: _loadingDetail
+        child: _loadingRfids
             ? const SizedBox(
                 width: 24,
                 height: 24,
