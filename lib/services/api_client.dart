@@ -4,6 +4,15 @@ import 'package:http/http.dart' as http;
 import 'api_config.dart';
 import 'auth_service.dart';
 
+// A API não converte colunas bigint do Postgres: ids podem chegar como string ("15").
+int lerInt(Object? valor) => lerIntOpcional(valor)!;
+
+int? lerIntOpcional(Object? valor) => switch (valor) {
+      null => null,
+      num n => n.toInt(),
+      _ => int.parse(valor.toString()),
+    };
+
 class ApiException implements Exception {
   final int statusCode;
   final String mensagem;
@@ -29,20 +38,20 @@ class ApiClient {
 
   final AuthService _authService = AuthService();
 
-  Future<dynamic> get(String path, {Map<String, String>? query}) {
-    return _enviar(
-      (headers) => http.get(_uri(path, query), headers: headers),
-    );
+  Future<dynamic> get(
+    String path, {
+    Map<String, String>? query,
+    Duration timeout = _timeout,
+  }) {
+    return _enviar(http.get(_uri(path, query), headers: _headers()), timeout);
   }
 
   Future<dynamic> post(String path, {Object? body}) {
-    return _enviar(
-      (headers) => http.post(
-        _uri(path, null),
-        headers: {...headers, 'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ),
-    );
+    return _enviar(http.post(
+      _uri(path, null),
+      headers: {..._headers(), 'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    ));
   }
 
   /// Percorre todas as páginas de uma rota que responde `{dados, meta}`.
@@ -62,8 +71,7 @@ class ApiClient {
           (resposta['dados'] as List<dynamic>).cast<Map<String, dynamic>>();
       dados.addAll(itens);
 
-      final total = ((resposta['meta'] as Map<String, dynamic>)['total'] as num)
-          .toInt();
+      final total = lerInt((resposta['meta'] as Map<String, dynamic>)['total']);
       if (itens.isEmpty || dados.length >= total) return dados;
     }
   }
@@ -76,19 +84,19 @@ class ApiClient {
   }
 
   Map<String, String> _headers() {
-    final token = _authService.accessToken;
+    final token = _authService.token;
     return {if (token != null) 'Authorization': 'Bearer $token'};
   }
 
   Future<dynamic> _enviar(
-    Future<http.Response> Function(Map<String, String> headers) requisicao,
-  ) async {
-    var response = await requisicao(_headers()).timeout(_timeout);
+    Future<http.Response> requisicao, [
+    Duration timeout = _timeout,
+  ]) async {
+    final response = await requisicao.timeout(timeout);
 
-    if (_precisaRenovarToken(response)) {
-      final renovado = await _authService.refresh();
-      if (!renovado) throw SessaoExpiradaException();
-      response = await requisicao(_headers()).timeout(_timeout);
+    if (_tokenInvalido(response)) {
+      await _authService.expirarSessao();
+      throw SessaoExpiradaException();
     }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -99,7 +107,7 @@ class ApiClient {
   }
 
   // O middleware legado responde 401 para token expirado/inválido e 403 (código 101) para token ausente.
-  bool _precisaRenovarToken(http.Response response) {
+  bool _tokenInvalido(http.Response response) {
     if (response.statusCode == 401) return true;
     if (response.statusCode != 403) return false;
     final erro = _decodificar(response)?['error'];
@@ -114,8 +122,12 @@ class ApiClient {
         corpo?['message'] ??
         corpo?['erro'] ??
         (erro is Map ? erro['message'] : null);
-    return mensagem?.toString() ??
-        'Erro na requisição (${response.statusCode}).';
+    if (mensagem != null) return mensagem.toString();
+
+    final request = response.request;
+    return request == null
+        ? 'Erro na requisição (${response.statusCode}).'
+        : 'Erro ${response.statusCode} em ${request.method} ${request.url.path}.';
   }
 
   Map<String, dynamic>? _decodificar(http.Response response) {

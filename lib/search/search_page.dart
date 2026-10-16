@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../components/page_title_header.dart';
 import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
+import '../services/catalogo_rfid_service.dart';
 import '../services/reader_service.dart';
 import '../services/rfid_service.dart';
 import '../theme/app_colors.dart';
@@ -19,15 +20,17 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final RfidService _rfidService = RfidService();
+  final CatalogoRfidService _catalogo = CatalogoRfidService();
   final ReaderService _readerService = ReaderService();
 
   /// Whether the active reader is an Acura Bluetooth reader (otherwise C72).
   bool get _isBTL =>
       _readerService.isAcuraBTLReader(_readerService.connectedReader);
 
-  List<String> _tids = [];
-  bool _isLoadingTids = true;
+  final TextEditingController _buscaController = TextEditingController();
+  final FocusNode _buscaFocusNode = FocusNode();
+  // Texto exibido no campo para a seleção atual; se o usuário editá-lo, a seleção é desfeita.
+  String? _textoSelecionado;
 
   bool _isScanning = false;
   String? _selectedTid;
@@ -47,37 +50,77 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialTid != null) {
-      _selectedTid = widget.initialTid;
+    final initialTid = widget.initialTid;
+    if (initialTid != null) {
+      _selectedTid = initialTid;
+      _textoSelecionado = initialTid;
+      _buscaController.text = initialTid;
     }
-    _loadTids();
+    _buscaController.addListener(_onBuscaChanged);
+    _catalogo.carregar();
+    _catalogo.addListener(_onCatalogoChanged);
+    _exibirEpcDaSelecao();
     _initTrigger();
   }
 
-  Future<void> _loadTids() async {
-    try {
-      final rfids = await _rfidService.listar(status: 'CONCLUIDO');
-      final tids = rfids
-          .where((r) => r.tidValido)
-          .map((r) => r.tid!.trim())
-          .toSet()
-          .toList();
-      if (mounted) setState(() { _tids = tids; _isLoadingTids = false; });
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingTids = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Falha ao carregar TIDs: $e'),
-            backgroundColor: Colors.red[700],
-          ),
-        );
-      }
+  static String _textoDoRfid(Rfid rfid) => rfid.epc ?? rfid.tid!;
+
+  void _onCatalogoChanged() {
+    if (!mounted) return;
+    if (_catalogo.carregando) _buscaFocusNode.unfocus();
+    setState(() {});
+    _exibirEpcDaSelecao();
+  }
+
+  /// Troca o TID recebido em [SearchPage.initialTid] pelo EPC, quando ele está na lista.
+  void _exibirEpcDaSelecao() {
+    final selectedTid = _selectedTid;
+    if (selectedTid == null || _buscaController.text != _textoSelecionado) return;
+    final epc = _catalogo.buscarPorTid(selectedTid)?.epc;
+    if (epc == null || epc == _textoSelecionado) return;
+    _textoSelecionado = epc;
+    _buscaController.text = epc;
+  }
+
+  void _onBuscaChanged() {
+    if (_selectedTid != null && _buscaController.text != _textoSelecionado) {
+      setState(() {
+        _selectedTid = null;
+        _textoSelecionado = null;
+      });
     }
+  }
+
+  Iterable<Rfid> _sugestoes(TextEditingValue value) {
+    final termo = value.text.trim().toUpperCase();
+    if (termo.length < 3) return const [];
+    return _catalogo.rfids
+        .where((r) =>
+            (r.epc?.toUpperCase().contains(termo) ?? false) ||
+            (r.epcHex?.toUpperCase().contains(termo) ?? false) ||
+            r.tid!.toUpperCase().contains(termo))
+        .take(20);
+  }
+
+  void _selecionarRfid(Rfid rfid) {
+    setState(() {
+      _textoSelecionado = _textoDoRfid(rfid);
+      _selectedTid = rfid.tid;
+    });
+    _buscaFocusNode.unfocus();
+  }
+
+  void _limparBusca() {
+    _buscaController.clear();
+    setState(() {
+      _selectedTid = null;
+      _textoSelecionado = null;
+    });
   }
 
   @override
   void dispose() {
+    _catalogo.removeListener(_onCatalogoChanged);
     _tagStreamSubscription?.cancel();
     _triggerSubscription?.cancel();
     if (_isScanning) {
@@ -88,6 +131,8 @@ class _SearchPageState extends State<SearchPage> {
       }
     }
     _scrollController.dispose();
+    _buscaController.dispose();
+    _buscaFocusNode.dispose();
     super.dispose();
   }
 
@@ -100,6 +145,10 @@ class _SearchPageState extends State<SearchPage> {
         debugPrint('[SearchPage] Trigger event: pressed=$pressed');
         if (!mounted) return;
         if (pressed) {
+          if (_catalogo.carregando) {
+            _avisarCarregando();
+            return;
+          }
           _startScan();
         } else {
           _stopScan();
@@ -107,6 +156,14 @@ class _SearchPageState extends State<SearchPage> {
       },
       onError: (e) => debugPrint('[SearchPage] Trigger stream error: $e'),
     );
+  }
+
+  void _avisarCarregando() {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Aguarde o carregamento da lista de RFIDs.')),
+      );
   }
 
   void _startScan() {
@@ -134,10 +191,11 @@ class _SearchPageState extends State<SearchPage> {
     final tid = (map['tid'] as String? ?? '').toString();
     if (tid.isEmpty) return;
     final rssi = (map['rssi'] as num?)?.toInt() ?? -80;
+    final chave = CatalogoRfidService.normalizarTid(tid);
 
     if (_selectedTid != null) {
       // Filtered mode: only track the selected TID
-      if (tid == _selectedTid) {
+      if (chave == CatalogoRfidService.normalizarTid(_selectedTid!)) {
         setState(() {
           _currentRssi = rssi;
           _filteredHistory.insert(
@@ -157,9 +215,11 @@ class _SearchPageState extends State<SearchPage> {
         });
       }
     } else {
-      // All-tags mode: update tag map and sort by RSSI
+      // All-tags mode: only tags present in the preloaded RFID list
+      final rfid = _catalogo.buscarPorTid(tid);
+      if (rfid == null) return;
       setState(() {
-        _tagsMap[tid] = _C72Tag(tid: tid, rssi: rssi);
+        _tagsMap[chave] = _C72Tag(tid: tid, rssi: rssi, rfid: rfid);
         _currentTags = _tagsMap.values.toList()
           ..sort((a, b) => b.rssi.compareTo(a.rssi));
       });
@@ -227,7 +287,7 @@ class _SearchPageState extends State<SearchPage> {
         Row(
           children: [
             const Text(
-              'Selecionar TID (opcional)',
+              'Buscar por EPC (opcional)',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 16,
@@ -241,14 +301,16 @@ class _SearchPageState extends State<SearchPage> {
               child: IconButton(
                 padding: EdgeInsets.zero,
                 icon: const Icon(Icons.refresh, color: Colors.white70, size: 20),
-                onPressed: _isLoadingTids ? null : _loadTids,
+                onPressed: _catalogo.carregando
+                    ? null
+                    : () => _catalogo.carregar(forcar: true),
               ),
             ),
           ],
         ),
         const SizedBox(height: 4),
         const Text(
-          'Deixe vazio para encontrar a tag com o sinal mais forte',
+          'Digite ao menos 3 caracteres do EPC ou TID, ou deixe vazio para encontrar a tag com o sinal mais forte',
           style: TextStyle(color: Colors.white70, fontSize: 12),
         ),
         const SizedBox(height: 10),
@@ -259,61 +321,136 @@ class _SearchPageState extends State<SearchPage> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppColors.border, width: 1),
           ),
-          child: _isLoadingTids
-              ? const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
-                      ),
-                      SizedBox(width: 10),
-                      Text('Carregando TIDs...', style: TextStyle(color: AppColors.textMuted, fontSize: 14)),
-                    ],
-                  ),
-                )
-              : DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedTid,
-                    isExpanded: true,
-                    hint: const Text(
-                      'Todas as tags (melhor sinal)',
-                      style: TextStyle(color: AppColors.textMuted, fontSize: 14),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textSecondary),
-                    dropdownColor: Colors.white,
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: null,
-                        child: Text(
-                          'Todas as tags (melhor sinal)',
-                          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
-                        ),
-                      ),
-                      // DropdownButton exige que o valor selecionado exista entre os itens.
-                      ...{?_selectedTid, ..._tids}.map(
-                        (tid) => DropdownMenuItem<String>(
-                          value: tid,
-                          child: Text(
-                            tid,
-                            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-                          ),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) => setState(() => _selectedTid = value),
-                  ),
+          child: RawAutocomplete<Rfid>(
+            textEditingController: _buscaController,
+            focusNode: _buscaFocusNode,
+            displayStringForOption: _textoDoRfid,
+            optionsBuilder: _sugestoes,
+            onSelected: _selecionarRfid,
+            fieldViewBuilder: _buildCampoBusca,
+            optionsViewBuilder: _buildSugestoes,
+          ),
+        ),
+        if (_catalogo.carregando) ...[
+          const SizedBox(height: 10),
+          const LinearProgressIndicator(
+            minHeight: 4,
+            color: Colors.white,
+            backgroundColor: Colors.white24,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Carregando lista de RFIDs...',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ] else if (_catalogo.erro != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Falha ao carregar RFIDs: ${_catalogo.erro}',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ] else if (_catalogo.carregado) ...[
+          const SizedBox(height: 6),
+          Text(
+            '${_catalogo.rfids.length} RFIDs carregados',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCampoBusca(
+    BuildContext context,
+    TextEditingController controller,
+    FocusNode focusNode,
+    VoidCallback onFieldSubmitted,
+  ) {
+    final carregando = _catalogo.carregando;
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      enabled: !carregando,
+      textCapitalization: TextCapitalization.characters,
+      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+      onSubmitted: (_) => onFieldSubmitted(),
+      decoration: InputDecoration(
+        hintText: carregando ? 'Carregando RFIDs...' : 'EPC ou TID',
+        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        prefixIcon: carregando
+            ? const Padding(
+                padding: EdgeInsets.all(14),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
+                ),
+              )
+            : const Icon(Icons.search, color: AppColors.textSecondary),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) => value.text.isEmpty
+              ? const SizedBox.shrink()
+              : IconButton(
+                  icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 20),
+                  onPressed: carregando ? null : _limparBusca,
                 ),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildSugestoes(
+    BuildContext context,
+    AutocompleteOnSelected<Rfid> onSelected,
+    Iterable<Rfid> options,
+  ) {
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(8),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 260),
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            itemCount: options.length,
+            separatorBuilder: (context, index) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final rfid = options.elementAt(index);
+              return ListTile(
+                dense: true,
+                title: Text(
+                  rfid.epc ?? '—',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  rfid.tid!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                onTap: () => onSelected(rfid),
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildScanningCardContent() {
     if (_selectedTid != null) {
+      final epc = _catalogo.buscarPorTid(_selectedTid!)?.epc;
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -322,12 +459,21 @@ class _SearchPageState extends State<SearchPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 6),
-                const Text('Searching TID:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                Text(
+                  epc != null ? 'Buscando EPC:' : 'Buscando TID:',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  _selectedTid!,
+                  epc ?? _selectedTid!,
                   style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
+                if (epc != null)
+                  Text(
+                    _selectedTid!,
+                    style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'monospace'),
+                    overflow: TextOverflow.ellipsis,
+                  ),
               ],
             ),
           ),
@@ -360,13 +506,19 @@ class _SearchPageState extends State<SearchPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 6),
-              const Text('Best signal:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              const Text('Melhor sinal:', style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 4),
               Text(
-                best?.tid ?? '—',
+                best?.rfid.epc ?? best?.tid ?? '—',
                 style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                 overflow: TextOverflow.ellipsis,
               ),
+              if (best != null && best.rfid.epc != null)
+                Text(
+                  best.tid,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontFamily: 'monospace'),
+                  overflow: TextOverflow.ellipsis,
+                ),
             ],
           ),
         ),
@@ -394,8 +546,13 @@ class _SearchPageState extends State<SearchPage> {
         (_selectedTid != null ? _filteredHistory.isNotEmpty : _currentTags.isNotEmpty);
 
     String emptyMessage;
-    if (_isScanning) {
-      emptyMessage = 'Aguardando tags...';
+    if (_catalogo.carregando) {
+      emptyMessage = 'Carregando lista de RFIDs...';
+    } else if (_selectedTid == null && !_catalogo.carregado && _catalogo.erro != null) {
+      emptyMessage =
+          'Lista de RFIDs indisponível: ${_catalogo.erro}\nToque em atualizar para tentar de novo.';
+    } else if (_isScanning) {
+      emptyMessage = _selectedTid != null ? 'Aguardando tags...' : 'Aguardando tags cadastradas...';
     } else {
       emptyMessage = 'Press trigger to start reading';
     }
@@ -415,9 +572,13 @@ class _SearchPageState extends State<SearchPage> {
                   : _buildAllTagsList(),
             )
           : Center(
-              child: Text(
-                emptyMessage,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  emptyMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
+                ),
               ),
             ),
     );
@@ -470,15 +631,28 @@ class _SearchPageState extends State<SearchPage> {
                   child: Icon(Icons.signal_cellular_alt, size: 14, color: AppColors.primary),
                 ),
               Expanded(
-                child: Text(
-                  tag.tid,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isFirst ? AppColors.primary : AppColors.textHeading,
-                    fontFamily: 'monospace',
-                    fontWeight: isFirst ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tag.rfid.epc ?? tag.tid,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isFirst ? AppColors.primary : AppColors.textHeading,
+                        fontWeight: isFirst ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      tag.tid,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                        fontFamily: 'monospace',
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
@@ -508,5 +682,6 @@ class _RssiEntry {
 class _C72Tag {
   final String tid;
   final int rssi;
-  const _C72Tag({required this.tid, required this.rssi});
+  final Rfid rfid;
+  const _C72Tag({required this.tid, required this.rssi, required this.rfid});
 }

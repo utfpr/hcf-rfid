@@ -19,7 +19,7 @@ class ListaConferencia {
     int? totalRfids,
   }) =>
       ListaConferencia(
-        id: (json['id'] as num).toInt(),
+        id: lerInt(json['id']),
         nome: json['nome'] as String,
         descricao: json['descricao'] as String?,
         totalRfids: totalRfids,
@@ -58,12 +58,12 @@ class Inventario {
         (status[chave] as List<dynamic>? ?? const []).cast<String>();
 
     return Inventario(
-      id: (json['id'] as num).toInt(),
-      listaConferenciaId: (json['lista_conferencia_id'] as num).toInt(),
-      usuarioId: (json['usuario_id'] as num?)?.toInt(),
-      totalEsperado: (json['total_esperado'] as num).toInt(),
-      totalEncontrados: (json['total_encontrados'] as num).toInt(),
-      totalNaoEncontrados: (json['total_nao_encontrados'] as num).toInt(),
+      id: lerInt(json['id']),
+      listaConferenciaId: lerInt(json['lista_conferencia_id']),
+      usuarioId: lerIntOpcional(json['usuario_id']),
+      totalEsperado: lerInt(json['total_esperado']),
+      totalEncontrados: lerInt(json['total_encontrados']),
+      totalNaoEncontrados: lerInt(json['total_nao_encontrados']),
       encontrados: lista('encontrados'),
       naoEncontrados: lista('nao_encontrados'),
       tidsInvalidos: lista('tids_invalidos'),
@@ -72,7 +72,7 @@ class Inventario {
 }
 
 class ListaConferenciaService {
-  static const String _path = '/api/rfids/listas_conferencias';
+  static const String _path = '/rfids/listas_conferencias';
 
   final ApiClient _api = ApiClient();
 
@@ -81,7 +81,7 @@ class ListaConferenciaService {
     final dados = await _api.buscarTodasPaginas(_path);
     return Future.wait(dados.map((json) async => ListaConferencia.fromJson(
           json,
-          totalRfids: await _contarRfids((json['id'] as num).toInt()),
+          totalRfids: await _contarRfids(lerInt(json['id'])),
         )));
   }
 
@@ -107,8 +107,7 @@ class ListaConferenciaService {
         '$_path/$id/rfids',
         query: {'limite': '1'},
       ) as Map<String, dynamic>;
-      return ((resposta['meta'] as Map<String, dynamic>)['total'] as num)
-          .toInt();
+      return lerInt((resposta['meta'] as Map<String, dynamic>)['total']);
     } on SessaoExpiradaException {
       rethrow;
     } catch (_) {

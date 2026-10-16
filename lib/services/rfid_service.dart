@@ -18,9 +18,9 @@ class Rfid {
   });
 
   factory Rfid.fromJson(Map<String, dynamic> json) => Rfid(
-        id: (json['id'] as num).toInt(),
+        id: lerInt(json['id']),
         tid: json['tid'] as String?,
-        tomboFotoId: (json['tombo_foto_id'] as num?)?.toInt(),
+        tomboFotoId: lerIntOpcional(json['tombo_foto_id']),
         epc: json['epc'] as String?,
         epcHex: json['epc_hex'] as String?,
         status: json['status'] as String?,
@@ -33,7 +33,7 @@ class Rfid {
   }
 }
 
-/// Resposta de `GET /api/rfids/validar-tid/:tid` (campo `dados`).
+/// Resposta de `GET /rfids/validar-tid/:tid` (campo `dados`).
 class RfidValidado {
   final int idRfid;
   final String tid;
@@ -56,7 +56,7 @@ class RfidValidado {
   });
 
   factory RfidValidado.fromJson(Map<String, dynamic> json) => RfidValidado(
-        idRfid: (json['id_rfid'] as num).toInt(),
+        idRfid: lerInt(json['id_rfid']),
         tid: json['tid'] as String,
         epc: json['epc'] as String?,
         epcHex: json['epc_hex'] as String?,
@@ -69,22 +69,29 @@ class RfidValidado {
 }
 
 class RfidService {
+  // A API sempre pagina, mas não limita `limite`: um valor alto devolve tudo numa resposta.
+  static const int _limiteSemPaginacao = 100000;
+
   final ApiClient _api = ApiClient();
 
   /// Somente CURADOR.
   Future<List<Rfid>> listar({String? status}) async {
-    final dados = await _api.buscarTodasPaginas(
-      '/api/rfids',
-      query: {'status': ?status},
-    );
-    return dados.map(Rfid.fromJson).toList();
+    final resposta = await _api.get(
+      '/rfids',
+      query: {'status': ?status, 'limite': '$_limiteSemPaginacao'},
+      timeout: const Duration(seconds: 60),
+    ) as Map<String, dynamic>;
+    return (resposta['dados'] as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .map(Rfid.fromJson)
+        .toList();
   }
 
   /// Somente CURADOR. Retorna `null` quando o TID não está cadastrado.
   Future<RfidValidado?> validarTid(String tid) async {
     try {
       final resposta = await _api.get(
-        '/api/rfids/validar-tid/${Uri.encodeComponent(tid)}',
+        '/rfids/validar-tid/${Uri.encodeComponent(tid)}',
       ) as Map<String, dynamic>;
       return RfidValidado.fromJson(resposta['dados'] as Map<String, dynamic>);
     } on ApiException catch (e) {

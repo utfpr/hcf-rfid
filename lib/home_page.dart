@@ -107,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
               // 3x2 grid
               Expanded(
                 child: GridView.count(
-                  crossAxisCount: 3,
+                  crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   childAspectRatio: 0.85,
@@ -116,17 +116,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     _HomeMenuButton(
                       icon: Icons.document_scanner,
-                      label: 'Scan',
+                      label: 'Conferência',
                       onTap: () => _pushPage(context, const ScanPage()),
                     ),
-                    _HomeMenuButton(
-                      icon: Icons.history,
-                      label: 'History',
-                      onTap: () => _pushPage(context, const HistoryPage()),
-                    ),
+                    // _HomeMenuButton(
+                    //   icon: Icons.history,
+                    //   label: 'Histórico',
+                    //   onTap: () => _pushPage(context, const HistoryPage()),
+                    // ),
                     _HomeMenuButton(
                       icon: Icons.settings,
-                      label: 'Settings',
+                      label: 'Configurações',
                       onTap: () => Navigator.of(context)
                           .push(MaterialPageRoute<void>(
                             builder: (_) => const SettingsPage(),
@@ -135,17 +135,17 @@ class _MyHomePageState extends State<MyHomePage> {
                     ),
                     _HomeMenuButton(
                       icon: Icons.document_scanner_outlined,
-                      label: 'Search',
+                      label: 'Busca',
                       onTap: () => _pushPage(context, const SearchPage()),
                     ),
-                    _HomeMenuButton(
-                      icon: Icons.nfc,
-                      label: 'Adicionar Tag',
-                      onTap: () => _pushPage(context, const AddTagPage()),
-                    ),
+                    // _HomeMenuButton(
+                    //   icon: Icons.nfc,
+                    //   label: 'Adicionar Tag',
+                    //   onTap: () => _pushPage(context, const AddTagPage()),
+                    // ),
                     _HomeMenuButton(
                       icon: Icons.info_outline,
-                      label: 'About',
+                      label: 'Sobre',
                       onTap: () => _pushPage(context, const AboutPage()),
                     ),
                   ],

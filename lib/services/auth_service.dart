@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'api_client.dart';
 import 'api_config.dart';
+import 'catalogo_rfid_service.dart';
 
 class Usuario {
   final int id;
@@ -19,10 +21,10 @@ class Usuario {
   });
 
   factory Usuario.fromJson(Map<String, dynamic> json) => Usuario(
-        id: (json['id'] as num).toInt(),
+        id: lerInt(json['id']),
         nome: json['nome'] as String,
         email: json['email'] as String,
-        tipoUsuarioId: (json['tipo_usuario_id'] as num).toInt(),
+        tipoUsuarioId: lerInt(json['tipo_usuario_id']),
       );
 
   Map<String, dynamic> toJson() => {
@@ -46,30 +48,26 @@ class AuthService {
   AuthService._internal();
 
   static const String _usuarioKey = 'auth_user';
-  static const String _accessTokenKey = 'auth_access_token';
-  static const String _refreshTokenKey = 'auth_refresh_token';
+  static const String _tokenKey = 'auth_token';
   static const Duration _timeout = Duration(seconds: 10);
 
-  /// Chamado quando o refresh token é rejeitado e o usuário precisa logar de novo.
+  /// Chamado quando o token expira e o usuário precisa logar de novo.
   void Function()? aoExpirarSessao;
 
   Usuario? _usuario;
-  String? _accessToken;
-  String? _refreshToken;
-  Future<bool>? _refreshEmAndamento;
+  String? _token;
 
   Usuario? get usuario => _usuario;
-  String? get accessToken => _accessToken;
-  bool get isLoggedIn => _usuario != null && _refreshToken != null;
+  String? get token => _token;
+  bool get isLoggedIn => _usuario != null && _token != null;
 
   Future<void> loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_usuarioKey);
-    _accessToken = prefs.getString(_accessTokenKey);
-    _refreshToken = prefs.getString(_refreshTokenKey);
+    _token = prefs.getString(_tokenKey);
 
-    // Sessões da API antiga não têm refresh token: força novo login.
-    if (raw == null || _refreshToken == null) {
+    // Sessões da API antiga não têm token: força novo login.
+    if (raw == null || _token == null) {
       await _limparSessao();
       return;
     }
@@ -77,20 +75,27 @@ class AuthService {
       _usuario = Usuario.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (_) {
       await _limparSessao();
+      return;
     }
+    unawaited(CatalogoRfidService().carregar());
   }
 
   Future<Usuario> login(String email, String senha) async {
     final response = await http
         .post(
-          Uri.parse('$apiBaseUrl/api/auth/login'),
+          Uri.parse('$apiBaseUrl/login'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({'email': email.trim(), 'senha': senha}),
         )
         .timeout(_timeout);
 
-    if (response.statusCode == 401) {
+    // Credenciais inválidas: 400 (código 100).
+    if (response.statusCode == 400 || response.statusCode == 401) {
       throw Exception('E-mail ou senha inválidos.');
+    }
+    // Validação do corpo (código 50): e-mail em formato inválido.
+    if (response.statusCode == 422) {
+      throw Exception('E-mail inválido.');
     }
     if (response.statusCode == 429) {
       throw Exception(
@@ -100,85 +105,36 @@ class AuthService {
       throw Exception('Erro ao autenticar (${response.statusCode}).');
     }
 
-    await _salvarSessao(jsonDecode(response.body) as Map<String, dynamic>);
-    return _usuario!;
-  }
-
-  /// Retorna `false` se o refresh token foi rejeitado.
-  // Chamadas simultâneas compartilham a renovação: a API rotaciona o refresh token a cada uso.
-  Future<bool> refresh() {
-    return _refreshEmAndamento ??=
-        _executarRefresh().whenComplete(() => _refreshEmAndamento = null);
-  }
-
-  Future<bool> _executarRefresh() async {
-    final refreshToken = _refreshToken;
-    if (refreshToken == null) {
-      await _limparSessao();
-      aoExpirarSessao?.call();
-      return false;
-    }
-
-    final response = await http
-        .post(
-          Uri.parse('$apiBaseUrl/api/auth/refresh'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'refresh_token': refreshToken}),
-        )
-        .timeout(_timeout);
-
-    if (response.statusCode == 401) {
-      await _limparSessao();
-      aoExpirarSessao?.call();
-      return false;
-    }
-    if (response.statusCode != 200) {
-      throw Exception('Erro ao renovar a sessão (${response.statusCode}).');
-    }
-
-    await _salvarSessao(jsonDecode(response.body) as Map<String, dynamic>);
-    return true;
-  }
-
-  Future<void> logout() async {
-    final accessToken = _accessToken;
-    final refreshToken = _refreshToken;
-    await _limparSessao();
-    if (refreshToken == null) return;
-
-    // Melhor esforço: o logout local não depende da API estar acessível.
-    unawaited(http
-        .post(
-          Uri.parse('$apiBaseUrl/api/auth/logout'),
-          headers: {
-            'Content-Type': 'application/json',
-            if (accessToken != null) 'Authorization': 'Bearer $accessToken',
-          },
-          body: jsonEncode({'refresh_token': refreshToken}),
-        )
-        .timeout(_timeout)
-        .then((_) {}, onError: (_) {}));
-  }
-
-  Future<void> _salvarSessao(Map<String, dynamic> json) async {
-    _accessToken = json['access_token'] as String;
-    _refreshToken = json['refresh_token'] as String;
-    _usuario = Usuario.fromJson(json['user'] as Map<String, dynamic>);
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    _token = json['token'] as String;
+    _usuario = Usuario.fromJson(json['usuario'] as Map<String, dynamic>);
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_usuarioKey, jsonEncode(_usuario!.toJson()));
-    await prefs.setString(_accessTokenKey, _accessToken!);
-    await prefs.setString(_refreshTokenKey, _refreshToken!);
+    await prefs.setString(_tokenKey, _token!);
+
+    unawaited(CatalogoRfidService().carregar());
+    return _usuario!;
   }
+
+  /// O token de /login não tem renovação: ao expirar, encerra a sessão e volta ao login.
+  Future<void> expirarSessao() async {
+    // Várias requisições podem expirar juntas; só a primeira notifica.
+    if (_token == null) return;
+    await _limparSessao();
+    aoExpirarSessao?.call();
+  }
+
+  /// A API não tem logout para o token de /login: basta descartá-lo.
+  Future<void> logout() => _limparSessao();
 
   Future<void> _limparSessao() async {
     _usuario = null;
-    _accessToken = null;
-    _refreshToken = null;
+    _token = null;
+    CatalogoRfidService().limpar();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_usuarioKey);
-    await prefs.remove(_accessTokenKey);
-    await prefs.remove(_refreshTokenKey);
+    await prefs.remove(_tokenKey);
   }
 }

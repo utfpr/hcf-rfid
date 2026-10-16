@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../search/search_page.dart';
+import '../services/catalogo_rfid_service.dart';
 import '../services/lista_conferencia_service.dart';
-import '../services/rfid_service.dart';
 import '../services/scan_session_service.dart';
 import '../theme/app_colors.dart';
 
@@ -82,20 +82,14 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
         }
       }
 
-      // Enrich EPC from backend (raw hex stored in DB). validar-tid is CURADOR-only.
-      final rfidService = RfidService();
-      final uniqueTids = items.map((i) => i.tid).where((t) => t.isNotEmpty).toSet();
-      final Map<String, String> tidToEpc = {};
-      await Future.wait(uniqueTids.map((tid) async {
-        try {
-          final epc = (await rfidService.validarTid(tid))?.epcHex;
-          if (epc != null && epc.isNotEmpty) tidToEpc[tid] = epc;
-        } catch (_) {}
-      }));
+      // EPC salvo no banco (hex), a partir da lista de RFIDs em memória.
+      final catalogo = CatalogoRfidService();
+      await catalogo.carregar();
+      if (!mounted) return;
 
       final enrichedItems = items.map((item) {
-        final backendEpc = tidToEpc[item.tid];
-        if (backendEpc == null) return item;
+        final backendEpc = catalogo.buscarPorTid(item.tid)?.epcHex;
+        if (backendEpc == null || backendEpc.isEmpty) return item;
         return TagItem(
           id: item.id,
           tid: item.tid,
