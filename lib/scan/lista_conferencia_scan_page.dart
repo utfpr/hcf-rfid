@@ -7,6 +7,7 @@ import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
 import '../services/scan_session_service.dart';
+import '../services/urovo_reader_plugin.dart';
 import '../theme/app_colors.dart';
 
 class ListaConferenciaScanPage extends StatefulWidget {
@@ -55,6 +56,8 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
 
   bool get _isBTL => _readerService.isAcuraBTLReader(_readerService.connectedReader);
 
+  bool get _isUrovo => _readerService.isUrovoReader(_readerService.connectedReader);
+
   @override
   void dispose() {
     _tagSubscription?.cancel();
@@ -62,6 +65,8 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
     if (_isScanning) {
       if (_isBTL) {
         BTLReaderPlugin.stopScan();
+      } else if (_isUrovo) {
+        UrovoReaderPlugin.stopScan();
       } else {
         C72ReaderPlugin.stopScan();
       }
@@ -71,7 +76,11 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
   }
 
   void _initTrigger() {
-    final stream = _isBTL ? BTLReaderPlugin.triggerStream : C72ReaderPlugin.triggerStream;
+    final stream = _isBTL
+        ? BTLReaderPlugin.triggerStream
+        : _isUrovo
+            ? UrovoReaderPlugin.triggerStream
+            : C72ReaderPlugin.triggerStream;
     _triggerSubscription = stream.listen(
       (pressed) {
         if (!mounted) return;
@@ -94,6 +103,9 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
     if (_isBTL) {
       _tagSubscription = BTLReaderPlugin.tagStream.listen(_onTagReceived);
       BTLReaderPlugin.startScan();
+    } else if (_isUrovo) {
+      _tagSubscription = UrovoReaderPlugin.tagStream.listen(_onTagReceived);
+      UrovoReaderPlugin.startScan();
     } else {
       _tagSubscription = C72ReaderPlugin.tagStream.listen(_onTagReceived);
       C72ReaderPlugin.startScan();
@@ -106,6 +118,8 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
     _tagSubscription = null;
     if (_isBTL) {
       BTLReaderPlugin.stopScan();
+    } else if (_isUrovo) {
+      UrovoReaderPlugin.stopScan();
     } else {
       C72ReaderPlugin.stopScan();
     }

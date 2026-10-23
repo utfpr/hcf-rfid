@@ -4,6 +4,7 @@ import 'config_screen.dart';
 import '../home_page.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
+import '../services/urovo_reader_plugin.dart';
 import '../theme/app_colors.dart';
 
 class ConnectReaderScreen extends StatefulWidget {
@@ -34,6 +35,9 @@ class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
 
     // Auto-detect Chainway C72 device and connect directly
     if (await _tryAutoConnectC72()) return;
+
+    // Auto-detect Urovo device (DT50P, etc.) with integrated RFID and connect directly
+    if (await _tryAutoConnectUrovo()) return;
 
     // Check if there's a previously connected reader
     final connectedReader = _readerService.connectedReader;
@@ -117,6 +121,44 @@ class _ConnectReaderScreenState extends State<ConnectReaderScreen> {
       return true;
     } catch (e) {
       debugPrint('C72 auto-connect failed: $e');
+      _setStatus('Reader not found, continuing…');
+      return false;
+    }
+  }
+
+  /// Attempts to detect and connect to the integrated RFID reader of a Urovo device (DT50P, etc.).
+  /// Returns true if successful and navigation occurred.
+  Future<bool> _tryAutoConnectUrovo() async {
+    try {
+      _setStatus('Detecting reader…');
+      final isUrovo = await UrovoReaderPlugin.isUrovoDevice();
+      if (!isUrovo || !mounted) return false;
+
+      _setStatus('Initializing Urovo reader…');
+      // Register the Urovo reader as available if not already
+      final reader = ReaderDevice(
+        id: urovoReaderId,
+        manufacturer: urovoManufacturer,
+        model: urovoModel,
+      );
+      if (!_readerService.availableReaders.any((r) => r.id == reader.id)) {
+        await _readerService.addReader(reader);
+      }
+
+      // connectToReader calls UrovoReaderPlugin.initReader() internally
+      _setStatus('Connecting to Urovo…');
+      await _readerService.connectToReader(reader.id);
+
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const MyHomePage(title: 'HCF UTFPR'),
+          ),
+        );
+      }
+      return true;
+    } catch (e) {
+      debugPrint('Urovo auto-connect failed: $e');
       _setStatus('Reader not found, continuing…');
       return false;
     }

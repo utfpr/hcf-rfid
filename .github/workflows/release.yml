@@ -59,7 +59,7 @@ jobs:
             Build gerado automaticamente a partir do commit `${{ github.sha }}`.
 
             ### Como instalar
-            1. No dispositivo Android (Chainway C72 ou compatível), abra o link do APK abaixo
+            1. No dispositivo Android (Chainway C72, Urovo DT50P ou compatível), abra o link do APK abaixo
             2. Permita a instalação de fontes desconhecidas se solicitado
             3. Instale o APK
 
