@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../components/tombo_detalhes.dart';
 import '../search/search_page.dart';
 import '../services/catalogo_rfid_service.dart';
 import '../services/lista_conferencia_service.dart';
@@ -9,10 +10,7 @@ import '../theme/app_colors.dart';
 class SessionDetailsPage extends StatefulWidget {
   final String sessionId;
 
-  const SessionDetailsPage({
-    super.key,
-    required this.sessionId,
-  });
+  const SessionDetailsPage({super.key, required this.sessionId});
 
   @override
   State<SessionDetailsPage> createState() => _SessionDetailsPageState();
@@ -55,50 +53,56 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
             (t) => t?.tid == tid,
             orElse: () => null,
           );
-          items.add(TagItem(
-            id: (i + 1).toString().padLeft(2, '0'),
-            tid: tid,
-            epc: scannedTag?.epc ?? '',
-            timeStamp: scannedTag?.timeStamp ?? '-',
-            chipModel: scannedTag?.chipModel ?? '-',
-            readCount: scannedTag?.readCount ?? 0,
-            rssi: scannedTag?.rssi ?? 0,
-            isRead: readTids.contains(tid),
-          ));
+          items.add(
+            TagItem(
+              id: (i + 1).toString().padLeft(2, '0'),
+              tid: tid,
+              epc: scannedTag?.epc ?? '',
+              timeStamp: scannedTag?.timeStamp ?? '-',
+              chipModel: scannedTag?.chipModel ?? '-',
+              readCount: scannedTag?.readCount ?? 0,
+              rssi: scannedTag?.rssi ?? 0,
+              isRead: readTids.contains(tid),
+            ),
+          );
         }
       } else {
         // Fallback: no expected TIDs stored, show only scanned tags
         for (final tag in session.tags) {
-          items.add(TagItem(
-            id: tag.id,
-            tid: tag.tid,
-            epc: tag.epc,
-            timeStamp: tag.timeStamp,
-            chipModel: tag.chipModel,
-            readCount: tag.readCount,
-            rssi: tag.rssi,
-            isRead: true,
-          ));
+          items.add(
+            TagItem(
+              id: tag.id,
+              tid: tag.tid,
+              epc: tag.epc,
+              timeStamp: tag.timeStamp,
+              chipModel: tag.chipModel,
+              readCount: tag.readCount,
+              rssi: tag.rssi,
+              isRead: true,
+            ),
+          );
         }
       }
 
-      // EPC salvo no banco (hex), a partir da lista de RFIDs em memória.
+      // EPC salvo no banco (hex) e nº do tombo, a partir da lista de RFIDs em memória.
       final catalogo = CatalogoRfidService();
       await catalogo.carregar();
       if (!mounted) return;
 
       final enrichedItems = items.map((item) {
-        final backendEpc = catalogo.buscarPorTid(item.tid)?.epcHex;
-        if (backendEpc == null || backendEpc.isEmpty) return item;
+        final rfid = catalogo.buscarPorTid(item.tid);
+        if (rfid == null) return item;
+        final backendEpc = rfid.epcHex;
         return TagItem(
           id: item.id,
           tid: item.tid,
-          epc: backendEpc,
+          epc: backendEpc == null || backendEpc.isEmpty ? item.epc : backendEpc,
           timeStamp: item.timeStamp,
           chipModel: item.chipModel,
           readCount: item.readCount,
           rssi: item.rssi,
           isRead: item.isRead,
+          tomboHcf: rfid.tomboHcf,
         );
       }).toList();
 
@@ -128,9 +132,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -157,7 +159,10 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                 const Center(
                   child: Text(
                     'Session not found',
-                    style: TextStyle(fontSize: 18, color: AppColors.textHeading),
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: AppColors.textHeading,
+                    ),
                   ),
                 ),
               ],
@@ -202,17 +207,16 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                     width: 10,
                     height: 10,
                     decoration: BoxDecoration(
-                      color: _session!.isSynced ? AppColors.success : Colors.orange,
+                      color: _session!.isSynced
+                          ? AppColors.success
+                          : Colors.orange,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 10),
                   Text(
                     _filteredTagItems.length.toString().padLeft(2, '0'),
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[500],
-                    ),
+                    style: TextStyle(fontSize: 18, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -235,10 +239,7 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                   child: Column(
                     children: [
                       // Divider
-                      Container(
-                        height: 1,
-                        color: Colors.grey[300],
-                      ),
+                      Container(height: 1, color: Colors.grey[300]),
                       // Filter row inside container
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -286,36 +287,49 @@ class _SessionDetailsPageState extends State<SessionDetailsPage> {
                                 ),
                               )
                             : SingleChildScrollView(
-                                padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  12,
+                                  12,
+                                  12,
+                                ),
                                 child: Column(
-                                  children: List.generate(_filteredTagItems.length, (index) {
-                                    final item = _filteredTagItems[index];
-                                    final isExpanded = _expandedIndices.contains(index);
+                                  children: List.generate(
+                                    _filteredTagItems.length,
+                                    (index) {
+                                      final item = _filteredTagItems[index];
+                                      final isExpanded = _expandedIndices
+                                          .contains(index);
 
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
-                                      child: _TagAccordionItem(
-                                        item: item,
-                                        isExpanded: isExpanded,
-                                        onToggle: () {
-                                          setState(() {
-                                            if (isExpanded) {
-                                              _expandedIndices.remove(index);
-                                            } else {
-                                              _expandedIndices.add(index);
-                                            }
-                                          });
-                                        },
-                                        onSearch: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (_) => SearchPage(initialTid: item.tid),
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  }),
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 10,
+                                        ),
+                                        child: _TagAccordionItem(
+                                          item: item,
+                                          isExpanded: isExpanded,
+                                          onToggle: () {
+                                            setState(() {
+                                              if (isExpanded) {
+                                                _expandedIndices.remove(index);
+                                              } else {
+                                                _expandedIndices.add(index);
+                                              }
+                                            });
+                                          },
+                                          onSearch: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) => SearchPage(
+                                                  initialTid: item.tid,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
                               ),
                       ),
@@ -542,10 +556,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
           // Reader type section
           const Text(
             'Reader type',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.black87),
           ),
           const SizedBox(height: 12),
           // Filter type chips - centered
@@ -563,10 +574,7 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
           // Dynamic label based on selected filter type
           Text(
             'Write the $_selectedType',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-            ),
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
           const SizedBox(height: 12),
           // Text input
@@ -580,7 +588,10 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
               decoration: InputDecoration(
                 hintText: _getHintText(),
                 hintStyle: const TextStyle(color: Colors.grey),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: InputBorder.none,
               ),
             ),
@@ -592,7 +603,10 @@ class _FilterBottomSheetState extends State<_FilterBottomSheet> {
             height: 50,
             child: ElevatedButton(
               onPressed: () {
-                widget.onApplyFilter(_selectedType, widget.filterNameController.text);
+                widget.onApplyFilter(
+                  _selectedType,
+                  widget.filterNameController.text,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -695,22 +709,30 @@ class _TagAccordionItem extends StatelessWidget {
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(6),
                   topRight: const Radius.circular(6),
-                  bottomLeft: isExpanded ? Radius.zero : const Radius.circular(6),
-                  bottomRight: isExpanded ? Radius.zero : const Radius.circular(6),
+                  bottomLeft: isExpanded
+                      ? Radius.zero
+                      : const Radius.circular(6),
+                  bottomRight: isExpanded
+                      ? Radius.zero
+                      : const Radius.circular(6),
                 ),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Row(
                 children: [
                   Icon(
-                    item.isRead ? Icons.check_circle : Icons.radio_button_unchecked,
+                    item.isRead
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
                     color: Colors.white70,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      item.tid,
+                      item.tomboHcf != null
+                          ? 'Tombo ${item.tomboHcf}'
+                          : item.tid,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -719,7 +741,9 @@ class _TagAccordionItem extends StatelessWidget {
                     ),
                   ),
                   Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     color: Colors.white70,
                     size: 20,
                   ),
@@ -728,68 +752,43 @@ class _TagAccordionItem extends StatelessWidget {
             ),
           ),
           // Expanded content with animation
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(6),
-                  bottomRight: Radius.circular(6),
-                ),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoRow('TID:', item.tid),
-                  const SizedBox(height: 6),
-                  _buildInfoRow('EPC:', item.epc.isNotEmpty ? item.epc : 'Not read'),
-                  const SizedBox(height: 6),
-                  _buildInfoRow('Status:', item.isRead ? 'Encontrado' : 'Não encontrado'),
-                  const SizedBox(height: 6),
-                  _buildInfoRow('Time stamp:', item.timeStamp),
-                  const SizedBox(height: 6),
-                  _buildInfoRow('Chip model:', item.chipModel),
-                  const SizedBox(height: 6),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildInfoRow('Read count:', item.readCount.toString()),
-                      SizedBox(
-                        height: 32,
-                        width: 32,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          icon: const Icon(Icons.search, size: 20, color: AppColors.primary),
-                          tooltip: 'Buscar esta tag',
-                          onPressed: onSearch,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          AnimatedSize(
             duration: const Duration(milliseconds: 200),
+            alignment: Alignment.topCenter,
+            child: !isExpanded
+                ? const SizedBox(width: double.infinity)
+                : Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(6),
+                        bottomRight: Radius.circular(6),
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(child: TomboDetalhes(tomboHcf: item.tomboHcf)),
+                        SizedBox(
+                          height: 32,
+                          width: 32,
+                          child: IconButton(
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(
+                              Icons.search,
+                              size: 20,
+                              color: AppColors.primary,
+                            ),
+                            tooltip: 'Buscar esta tag',
+                            onPressed: onSearch,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(fontSize: 13, color: Colors.black87),
-        children: [
-          TextSpan(
-            text: '$label ',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          TextSpan(text: value),
         ],
       ),
     );
@@ -805,6 +804,7 @@ class TagItem {
   final int readCount;
   final int rssi;
   final bool isRead;
+  final int? tomboHcf;
 
   TagItem({
     required this.id,
@@ -815,5 +815,6 @@ class TagItem {
     required this.readCount,
     required this.rssi,
     this.isRead = false,
+    this.tomboHcf,
   });
 }

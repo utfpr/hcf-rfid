@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../components/tombo_detalhes.dart';
 import '../history/session_details_page.dart';
 import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
+import '../services/catalogo_rfid_service.dart';
 import '../services/reader_service.dart';
 import '../services/scan_session_service.dart';
 import '../services/urovo_reader_plugin.dart';
@@ -30,6 +32,7 @@ class ListaConferenciaScanPage extends StatefulWidget {
 class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
   final ScanSessionService _sessionService = ScanSessionService();
   final ReaderService _readerService = ReaderService();
+  final CatalogoRfidService _catalogo = CatalogoRfidService();
 
   final Set<String> _readTids = {};
   final ValueNotifier<int> _readCount = ValueNotifier<int>(0);
@@ -51,15 +54,24 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
   void initState() {
     super.initState();
     _startTime = DateTime.now();
+    _catalogo.addListener(_onCatalogoAtualizado);
+    _catalogo.carregar();
     _initTrigger();
   }
 
-  bool get _isBTL => _readerService.isAcuraBTLReader(_readerService.connectedReader);
+  void _onCatalogoAtualizado() {
+    if (mounted) setState(() {});
+  }
 
-  bool get _isUrovo => _readerService.isUrovoReader(_readerService.connectedReader);
+  bool get _isBTL =>
+      _readerService.isAcuraBTLReader(_readerService.connectedReader);
+
+  bool get _isUrovo =>
+      _readerService.isUrovoReader(_readerService.connectedReader);
 
   @override
   void dispose() {
+    _catalogo.removeListener(_onCatalogoAtualizado);
     _tagSubscription?.cancel();
     _triggerSubscription?.cancel();
     if (_isScanning) {
@@ -79,19 +91,16 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
     final stream = _isBTL
         ? BTLReaderPlugin.triggerStream
         : _isUrovo
-            ? UrovoReaderPlugin.triggerStream
-            : C72ReaderPlugin.triggerStream;
-    _triggerSubscription = stream.listen(
-      (pressed) {
-        if (!mounted) return;
-        if (pressed) {
-          _startScanning();
-        } else {
-          _stopScanning();
-        }
-      },
-      onError: (_) {},
-    );
+        ? UrovoReaderPlugin.triggerStream
+        : C72ReaderPlugin.triggerStream;
+    _triggerSubscription = stream.listen((pressed) {
+      if (!mounted) return;
+      if (pressed) {
+        _startScanning();
+      } else {
+        _stopScanning();
+      }
+    }, onError: (_) {});
   }
 
   void _startScanning() {
@@ -270,15 +279,14 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
                             final tid = sortedTids[index];
                             final isRead = _readTids.contains(tid);
                             final isExpanded = _expandedTids.contains(tid);
-                            final tag = _scannedTagsMap[tid];
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 10),
                               child: _TidAccordionItem(
                                 tid: tid,
+                                tomboHcf: _catalogo.buscarPorTid(tid)?.tomboHcf,
                                 isRead: isRead,
                                 isExpanded: isExpanded,
-                                tag: tag,
                                 onToggle: () {
                                   setState(() {
                                     if (_expandedTids.contains(tid)) {
@@ -324,7 +332,9 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: _isScanning ? AppColors.success : AppColors.textMuted,
+                        color: _isScanning
+                            ? AppColors.success
+                            : AppColors.textMuted,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -390,7 +400,8 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
           foregroundColor: Colors.white,
           disabledBackgroundColor: Colors.grey[400],
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28)),
+            borderRadius: BorderRadius.circular(28),
+          ),
           elevation: 0,
         ),
         child: _isFinishing
@@ -398,16 +409,19 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
-                    strokeWidth: 2, color: Colors.white),
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
             : const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.check, size: 24),
                   SizedBox(width: 8),
-                  Text('Finish Session',
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Finish Session',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
                 ],
               ),
       ),
@@ -417,16 +431,16 @@ class _ListaConferenciaScanPageState extends State<ListaConferenciaScanPage> {
 
 class _TidAccordionItem extends StatelessWidget {
   final String tid;
+  final int? tomboHcf;
   final bool isRead;
   final bool isExpanded;
-  final ScannedTag? tag;
   final VoidCallback onToggle;
 
   const _TidAccordionItem({
     required this.tid,
+    required this.tomboHcf,
     required this.isRead,
     required this.isExpanded,
-    required this.tag,
     required this.onToggle,
   });
 
@@ -450,27 +464,26 @@ class _TidAccordionItem extends StatelessWidget {
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(6),
                   topRight: const Radius.circular(6),
-                  bottomLeft:
-                      isExpanded ? Radius.zero : const Radius.circular(6),
-                  bottomRight:
-                      isExpanded ? Radius.zero : const Radius.circular(6),
+                  bottomLeft: isExpanded
+                      ? Radius.zero
+                      : const Radius.circular(6),
+                  bottomRight: isExpanded
+                      ? Radius.zero
+                      : const Radius.circular(6),
                 ),
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Row(
                 children: [
                   Icon(
-                    isRead
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
+                    isRead ? Icons.check_circle : Icons.radio_button_unchecked,
                     color: Colors.white70,
                     size: 18,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      tid,
+                      tomboHcf != null ? 'Tombo $tomboHcf' : tid,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -490,56 +503,24 @@ class _TidAccordionItem extends StatelessWidget {
             ),
           ),
           // Expanded content
-          AnimatedCrossFade(
-            firstChild: const SizedBox.shrink(),
-            secondChild: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(6),
-                  bottomRight: Radius.circular(6),
-                ),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildInfoRow('TID:', tid),
-                        const SizedBox(height: 6),
-                        _buildInfoRow('EPC:', tag?.epc.isNotEmpty == true ? tag!.epc : 'Not read yet'),
-                        const SizedBox(height: 6),
-                        _buildInfoRow('Time stamp:', tag?.timeStamp ?? '-'),
-                        const SizedBox(height: 6),
-                        _buildInfoRow('Chip model:', tag?.chipModel ?? '-'),
-                        const SizedBox(height: 6),
-                        _buildInfoRow(
-                            'Read count:', tag?.readCount.toString() ?? '0'),
-                        const SizedBox(height: 6),
-                        _buildInfoRow('Status:', isRead ? 'Encontrado' : 'Não encontrado'),
-                      ],
-                    ),
-            ),
-            crossFadeState: isExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
+          AnimatedSize(
             duration: const Duration(milliseconds: 200),
+            alignment: Alignment.topCenter,
+            child: !isExpanded
+                ? const SizedBox(width: double.infinity)
+                : Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(6),
+                        bottomRight: Radius.circular(6),
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: TomboDetalhes(tomboHcf: tomboHcf),
+                  ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(fontSize: 13, color: Colors.black87),
-        children: [
-          TextSpan(
-            text: '$label ',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          TextSpan(text: value),
         ],
       ),
     );

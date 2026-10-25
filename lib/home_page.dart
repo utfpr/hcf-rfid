@@ -52,8 +52,10 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       final result = await InternetAddress.lookup(Uri.parse(apiBaseUrl).host);
       if (mounted) {
-        setState(() => _isNetworkConnected =
-            result.isNotEmpty && result[0].rawAddress.isNotEmpty);
+        setState(
+          () => _isNetworkConnected =
+              result.isNotEmpty && result[0].rawAddress.isNotEmpty,
+        );
       }
     } on SocketException catch (_) {
       if (mounted) setState(() => _isNetworkConnected = false);
@@ -69,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -91,11 +93,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Image.asset(
                       'assets/hcf-logo.png',
                       height: 40,
-                      errorBuilder: (_, _, _) => const Icon(
-                        Icons.eco,
-                        color: Colors.white,
-                        size: 40,
-                      ),
+                      errorBuilder: (_, _, _) =>
+                          const Icon(Icons.eco, color: Colors.white, size: 40),
                     ),
                   ),
                 ],
@@ -104,52 +103,51 @@ class _MyHomePageState extends State<MyHomePage> {
               // Connection status card
               _buildConnectionCard(),
               const SizedBox(height: 32),
-              // 3x2 grid
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.85,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _HomeMenuButton(
-                      icon: Icons.document_scanner,
-                      label: 'Conferência',
-                      onTap: () => _pushPage(context, const ScanPage()),
-                    ),
-                    // _HomeMenuButton(
-                    //   icon: Icons.history,
-                    //   label: 'Histórico',
-                    //   onTap: () => _pushPage(context, const HistoryPage()),
-                    // ),
-                    _HomeMenuButton(
-                      icon: Icons.settings,
-                      label: 'Configurações',
-                      onTap: () => Navigator.of(context)
-                          .push(MaterialPageRoute<void>(
+              GridView.count(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.85,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _HomeMenuButton(
+                    icon: Icons.document_scanner,
+                    label: 'Conferência',
+                    onTap: () => _pushPage(context, const ScanPage()),
+                  ),
+                  // _HomeMenuButton(
+                  //   icon: Icons.history,
+                  //   label: 'Histórico',
+                  //   onTap: () => _pushPage(context, const HistoryPage()),
+                  // ),
+                  _HomeMenuButton(
+                    icon: Icons.settings,
+                    label: 'Configurações',
+                    onTap: () => Navigator.of(context)
+                        .push(
+                          MaterialPageRoute<void>(
                             builder: (_) => const SettingsPage(),
-                          ))
-                          .then((_) => setState(() {})),
-                    ),
-                    _HomeMenuButton(
-                      icon: Icons.document_scanner_outlined,
-                      label: 'Busca',
-                      onTap: () => _pushPage(context, const SearchPage()),
-                    ),
-                    // _HomeMenuButton(
-                    //   icon: Icons.nfc,
-                    //   label: 'Adicionar Tag',
-                    //   onTap: () => _pushPage(context, const AddTagPage()),
-                    // ),
-                    _HomeMenuButton(
-                      icon: Icons.info_outline,
-                      label: 'Sobre',
-                      onTap: () => _pushPage(context, const AboutPage()),
-                    ),
-                  ],
-                ),
+                          ),
+                        )
+                        .then((_) => setState(() {})),
+                  ),
+                  _HomeMenuButton(
+                    icon: Icons.document_scanner_outlined,
+                    label: 'Busca',
+                    onTap: () => _pushPage(context, const SearchPage()),
+                  ),
+                  // _HomeMenuButton(
+                  //   icon: Icons.nfc,
+                  //   label: 'Adicionar Tag',
+                  //   onTap: () => _pushPage(context, const AddTagPage()),
+                  // ),
+                  _HomeMenuButton(
+                    icon: Icons.info_outline,
+                    label: 'Sobre',
+                    onTap: () => _pushPage(context, const AboutPage()),
+                  ),
+                ],
               ),
             ],
           ),
@@ -159,9 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _pushPage(BuildContext context, Widget page) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => page),
-    );
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
   }
 
   Widget _buildConnectionCard() {
@@ -232,10 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
         const SizedBox(width: 6),
         Text(
           '$label: ',
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
-            fontSize: 13,
-          ),
+          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
         ),
         Expanded(
           child: Text(
