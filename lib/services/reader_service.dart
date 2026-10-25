@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'c72_reader_plugin.dart';
 import 'btl_reader_plugin.dart';
+import 'urovo_reader_plugin.dart';
 
 /// Model representing a RFID reader device
 class ReaderDevice {
@@ -55,6 +56,10 @@ class ReaderConfiguration {
   /// Acura BTL reader power range (1–29 dBm).
   static const double minPowerBTL = 1;
   static const double maxPowerBTL = 29;
+  /// Urovo integrated reader power range. The actual maximum comes from the module
+  /// ([ReaderService.urovoMaxPower]); 33 dBm is the Impinj E710 default.
+  static const double minPowerUrovo = 5;
+  static const double maxPowerUrovo = 33;
 
   Map<String, dynamic> toJson() => {
         'readPower': readPower,
@@ -88,11 +93,17 @@ const String btlReaderId = 'btl_bluetooth';
 const String acuraManufacturer = 'Acura';
 const String btlModel = 'BTL2128p';
 
+/// Urovo integrated UHF reader (DT50P and other Urovo devices) - no Bluetooth, init-only connection.
+const String urovoReaderId = 'urovo_internal';
+const String urovoManufacturer = 'Urovo';
+const String urovoModel = 'DT50P';
+
 /// Available manufacturers and their reader models
 class ReaderCatalog {
   static const Map<String, List<String>> manufacturerModels = {
     'Chainway': ['C72'],
     'Acura': ['BTL2128p'],
+    'Urovo': ['DT50P'],
   };
 
   static List<String> get manufacturers => manufacturerModels.keys.toList();
@@ -120,6 +131,7 @@ class ReaderService extends ChangeNotifier {
   ReaderConfiguration _configuration = const ReaderConfiguration();
   bool _physicallyConnected = false;
   bool _isLoaded = false;
+  double _urovoMaxPower = ReaderConfiguration.maxPowerUrovo;
 
   List<ReaderDevice> get availableReaders => List.unmodifiable(_availableReaders);
   ReaderDevice? get connectedReader => _connectedReader;
@@ -127,6 +139,9 @@ class ReaderService extends ChangeNotifier {
   ReaderConfiguration get configuration => _configuration;
   bool get isLoaded => _isLoaded;
   bool get isPhysicallyConnected => _physicallyConnected;
+
+  /// Maximum output power reported by the connected Urovo module (updated by [refreshPowerFromDevice]).
+  double get urovoMaxPower => _urovoMaxPower;
 
   Future<void> _loadFromStorage() async {
     final prefs = await SharedPreferences.getInstance();
@@ -209,6 +224,11 @@ class ReaderService extends ChangeNotifier {
         reader.manufacturer == acuraManufacturer;
   }
 
+  /// Whether the given reader is the integrated reader of a Urovo device (any Urovo model).
+  bool isUrovoReader(ReaderDevice? reader) {
+    return reader != null && reader.manufacturer == urovoManufacturer;
+  }
+
   /// Connect to a specific reader by ID. Routes to the appropriate platform plugin.
   Future<void> connectToReader(String readerId) async {
     final reader = _availableReaders.firstWhere(
@@ -219,6 +239,8 @@ class ReaderService extends ChangeNotifier {
       await C72ReaderPlugin.initReader();
     } else if (isAcuraBTLReader(reader)) {
       await BTLReaderPlugin.connectReader();
+    } else if (isUrovoReader(reader)) {
+      await UrovoReaderPlugin.initReader();
     }
     _connectedReader = reader;
     _selectedReaderId = readerId;
@@ -249,6 +271,8 @@ class ReaderService extends ChangeNotifier {
       await C72ReaderPlugin.disconnectReader();
     } else if (isAcuraBTLReader(_connectedReader)) {
       await BTLReaderPlugin.disconnectReader();
+    } else if (isUrovoReader(_connectedReader)) {
+      await UrovoReaderPlugin.disconnectReader();
     }
     _connectedReader = null;
     _selectedReaderId = null;
@@ -266,6 +290,8 @@ class ReaderService extends ChangeNotifier {
       return await C72ReaderPlugin.isConnected();
     } else if (isAcuraBTLReader(_connectedReader)) {
       return await BTLReaderPlugin.isConnected();
+    } else if (isUrovoReader(_connectedReader)) {
+      return await UrovoReaderPlugin.isConnected();
     }
     return false;
   }
@@ -292,6 +318,20 @@ class ReaderService extends ChangeNotifier {
         await _saveConfiguration();
         notifyListeners();
       }
+    } else if (isUrovoReader(_connectedReader)) {
+      final maxPower = await UrovoReaderPlugin.getMaxPower();
+      if (maxPower != null && maxPower >= ReaderConfiguration.minPowerUrovo) {
+        _urovoMaxPower = maxPower.toDouble();
+      }
+      final powers = await UrovoReaderPlugin.getPower();
+      if (powers.length >= 2) {
+        _configuration = _configuration.copyWith(
+          readPower: powers[0].toDouble(),
+          writePower: powers[1].toDouble(),
+        );
+        await _saveConfiguration();
+        notifyListeners();
+      }
     }
   }
 
@@ -305,6 +345,10 @@ class ReaderService extends ChangeNotifier {
       final clamped = value.clamp(ReaderConfiguration.minPowerBTL, ReaderConfiguration.maxPowerBTL);
       await BTLReaderPlugin.setPower(clamped.round());
       _configuration = _configuration.copyWith(readPower: clamped, writePower: clamped);
+    } else if (isUrovoReader(_connectedReader)) {
+      final clamped = value.clamp(ReaderConfiguration.minPowerUrovo, _urovoMaxPower);
+      await UrovoReaderPlugin.setPower(clamped.round());
+      _configuration = _configuration.copyWith(readPower: clamped, writePower: clamped);
     } else {
       _configuration = _configuration.copyWith(readPower: value);
     }
@@ -316,6 +360,10 @@ class ReaderService extends ChangeNotifier {
     if (isC72Reader(_connectedReader)) {
       final clamped = value.clamp(ReaderConfiguration.minPowerC72, ReaderConfiguration.maxPowerC72);
       await C72ReaderPlugin.setPower(clamped.round());
+      _configuration = _configuration.copyWith(readPower: clamped, writePower: clamped);
+    } else if (isUrovoReader(_connectedReader)) {
+      final clamped = value.clamp(ReaderConfiguration.minPowerUrovo, _urovoMaxPower);
+      await UrovoReaderPlugin.setPower(clamped.round());
       _configuration = _configuration.copyWith(readPower: clamped, writePower: clamped);
     } else {
       _configuration = _configuration.copyWith(writePower: value);

@@ -8,6 +8,7 @@ import '../services/c72_reader_plugin.dart';
 import '../services/catalogo_rfid_service.dart';
 import '../services/reader_service.dart';
 import '../services/rfid_service.dart';
+import '../services/urovo_reader_plugin.dart';
 import '../theme/app_colors.dart';
 
 class SearchPage extends StatefulWidget {
@@ -23,9 +24,13 @@ class _SearchPageState extends State<SearchPage> {
   final CatalogoRfidService _catalogo = CatalogoRfidService();
   final ReaderService _readerService = ReaderService();
 
-  /// Whether the active reader is an Acura Bluetooth reader (otherwise C72).
+  /// Whether the active reader is an Acura Bluetooth reader (otherwise Urovo or C72).
   bool get _isBTL =>
       _readerService.isAcuraBTLReader(_readerService.connectedReader);
+
+  /// Whether the active reader is the integrated reader of a Urovo device.
+  bool get _isUrovo =>
+      _readerService.isUrovoReader(_readerService.connectedReader);
 
   final TextEditingController _buscaController = TextEditingController();
   final FocusNode _buscaFocusNode = FocusNode();
@@ -126,6 +131,8 @@ class _SearchPageState extends State<SearchPage> {
     if (_isScanning) {
       if (_isBTL) {
         BTLReaderPlugin.stopScan();
+      } else if (_isUrovo) {
+        UrovoReaderPlugin.stopScan();
       } else {
         C72ReaderPlugin.stopScan();
       }
@@ -137,9 +144,12 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _initTrigger() {
-    debugPrint('[SearchPage] _isBTL: $_isBTL, connectedReader: ${_readerService.connectedReader?.manufacturer}/${_readerService.connectedReader?.model}');
-    final stream =
-        _isBTL ? BTLReaderPlugin.triggerStream : C72ReaderPlugin.triggerStream;
+    debugPrint('[SearchPage] _isBTL: $_isBTL, _isUrovo: $_isUrovo, connectedReader: ${_readerService.connectedReader?.manufacturer}/${_readerService.connectedReader?.model}');
+    final stream = _isBTL
+        ? BTLReaderPlugin.triggerStream
+        : _isUrovo
+            ? UrovoReaderPlugin.triggerStream
+            : C72ReaderPlugin.triggerStream;
     _triggerSubscription = stream.listen(
       (pressed) {
         debugPrint('[SearchPage] Trigger event: pressed=$pressed');
@@ -180,6 +190,9 @@ class _SearchPageState extends State<SearchPage> {
     if (_isBTL) {
       _tagStreamSubscription = BTLReaderPlugin.tagStream.listen(_onTagReceived);
       BTLReaderPlugin.startScan();
+    } else if (_isUrovo) {
+      _tagStreamSubscription = UrovoReaderPlugin.tagStream.listen(_onTagReceived);
+      UrovoReaderPlugin.startScan();
     } else {
       _tagStreamSubscription = C72ReaderPlugin.tagStream.listen(_onTagReceived);
       C72ReaderPlugin.startScan();
@@ -232,6 +245,8 @@ class _SearchPageState extends State<SearchPage> {
     _tagStreamSubscription = null;
     if (_isBTL) {
       BTLReaderPlugin.stopScan();
+    } else if (_isUrovo) {
+      UrovoReaderPlugin.stopScan();
     } else {
       C72ReaderPlugin.stopScan();
     }

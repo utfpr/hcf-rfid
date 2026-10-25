@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../home_page.dart';
 import '../services/reader_service.dart';
 import '../services/c72_reader_plugin.dart';
+import '../services/urovo_reader_plugin.dart';
 import '../theme/app_colors.dart';
 import 'bluetooth_connection_screen.dart';
 import 'connection_success_screen.dart';
@@ -98,6 +99,40 @@ class _ConfigScreenState extends State<ConfigScreen> {
             ),
           ),
         );
+      }
+      return;
+    }
+
+    // Urovo: integrated reader, no Bluetooth; init reader and go to success screen
+    if (_selectedManufacturer == urovoManufacturer) {
+      final isUrovo = await UrovoReaderPlugin.isUrovoDevice();
+      if (!mounted) return;
+      if (!isUrovo) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Leitor Urovo não detectado neste dispositivo.')),
+        );
+        return;
+      }
+      try {
+        await UrovoReaderPlugin.initReader();
+        if (mounted) {
+          navigator.push(
+            MaterialPageRoute<void>(
+              builder: (_) => ConnectionSuccessScreen(
+                manufacturer: urovoManufacturer,
+                model: _selectedReader!,
+                nickname: _nicknameController.text.isNotEmpty ? _nicknameController.text : null,
+                selectedDeviceId: urovoReaderId,
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          messenger.showSnackBar(
+            SnackBar(content: Text('Falha ao inicializar leitor Urovo: $e')),
+          );
+        }
       }
       return;
     }

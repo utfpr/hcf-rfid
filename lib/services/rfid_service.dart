@@ -7,6 +7,7 @@ class Rfid {
   final String? epc;
   final String? epcHex;
   final String? status;
+  final int? tomboHcf;
 
   const Rfid({
     required this.id,
@@ -15,16 +16,21 @@ class Rfid {
     this.epc,
     this.epcHex,
     this.status,
+    this.tomboHcf,
   });
 
   factory Rfid.fromJson(Map<String, dynamic> json) => Rfid(
-        id: lerInt(json['id']),
-        tid: json['tid'] as String?,
-        tomboFotoId: lerIntOpcional(json['tombo_foto_id']),
-        epc: json['epc'] as String?,
-        epcHex: json['epc_hex'] as String?,
-        status: json['status'] as String?,
-      );
+    id: lerInt(json['id']),
+    tid: json['tid'] as String?,
+    tomboFotoId: lerIntOpcional(json['tombo_foto_id']),
+    epc: json['epc'] as String?,
+    epcHex: json['epc_hex'] as String?,
+    status: json['status'] as String?,
+    // Associação TomboFoto (só vem em GET /rfids).
+    tomboHcf: lerIntOpcional(
+      (json['tombos_foto'] as Map<String, dynamic>?)?['tombo_hcf'],
+    ),
+  );
 
   /// Mesmo critério da API: TID vazio ou "N/A" não pode ser conferido.
   bool get tidValido {
@@ -56,16 +62,16 @@ class RfidValidado {
   });
 
   factory RfidValidado.fromJson(Map<String, dynamic> json) => RfidValidado(
-        idRfid: lerInt(json['id_rfid']),
-        tid: json['tid'] as String,
-        epc: json['epc'] as String?,
-        epcHex: json['epc_hex'] as String?,
-        statusRfid: json['status_rfid'] as String?,
-        // A API devolve número ou 'N/A'.
-        tomboHcf: json['tombo_hcf']?.toString() ?? 'N/A',
-        nomeCientifico: json['nome_cientifico']?.toString() ?? 'N/A',
-        coletorPrincipal: json['coletor_principal']?.toString() ?? 'N/A',
-      );
+    idRfid: lerInt(json['id_rfid']),
+    tid: json['tid'] as String,
+    epc: json['epc'] as String?,
+    epcHex: json['epc_hex'] as String?,
+    statusRfid: json['status_rfid'] as String?,
+    // A API devolve número ou 'N/A'.
+    tomboHcf: json['tombo_hcf']?.toString() ?? 'N/A',
+    nomeCientifico: json['nome_cientifico']?.toString() ?? 'N/A',
+    coletorPrincipal: json['coletor_principal']?.toString() ?? 'N/A',
+  );
 }
 
 class RfidService {
@@ -76,11 +82,13 @@ class RfidService {
 
   /// Somente CURADOR.
   Future<List<Rfid>> listar({String? status}) async {
-    final resposta = await _api.get(
-      '/rfids',
-      query: {'status': ?status, 'limite': '$_limiteSemPaginacao'},
-      timeout: const Duration(seconds: 60),
-    ) as Map<String, dynamic>;
+    final resposta =
+        await _api.get(
+              '/rfids',
+              query: {'status': ?status, 'limite': '$_limiteSemPaginacao'},
+              timeout: const Duration(seconds: 60),
+            )
+            as Map<String, dynamic>;
     return (resposta['dados'] as List<dynamic>)
         .cast<Map<String, dynamic>>()
         .map(Rfid.fromJson)
@@ -90,9 +98,9 @@ class RfidService {
   /// Somente CURADOR. Retorna `null` quando o TID não está cadastrado.
   Future<RfidValidado?> validarTid(String tid) async {
     try {
-      final resposta = await _api.get(
-        '/rfids/validar-tid/${Uri.encodeComponent(tid)}',
-      ) as Map<String, dynamic>;
+      final resposta =
+          await _api.get('/rfids/validar-tid/${Uri.encodeComponent(tid)}')
+              as Map<String, dynamic>;
       return RfidValidado.fromJson(resposta['dados'] as Map<String, dynamic>);
     } on ApiException catch (e) {
       if (e.statusCode == 404) return null;

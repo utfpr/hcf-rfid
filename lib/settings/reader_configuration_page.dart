@@ -22,19 +22,21 @@ class _ReaderConfigurationPageState extends State<ReaderConfigurationPage> {
   double _writePower = 0;
   bool _isC72 = false;
   bool _isBTL = false;
+  bool _isUrovo = false;
 
   @override
   void initState() {
     super.initState();
     _isC72 = _readerService.isC72Reader(_readerService.connectedReader);
     _isBTL = _readerService.isAcuraBTLReader(_readerService.connectedReader);
+    _isUrovo = _readerService.isUrovoReader(_readerService.connectedReader);
     _readPower = _readerService.configuration.readPower;
     _writePower = _readerService.configuration.writePower;
     _readPowerController =
         TextEditingController(text: _readPower.round().toString());
     _writePowerController =
         TextEditingController(text: _writePower.round().toString());
-    if (_isC72 || _isBTL) {
+    if (_isC72 || _isBTL || _isUrovo) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadDevicePower());
     }
   }
@@ -61,12 +63,14 @@ class _ReaderConfigurationPageState extends State<ReaderConfigurationPage> {
   double get _minPower {
     if (_isC72) return ReaderConfiguration.minPowerC72;
     if (_isBTL) return ReaderConfiguration.minPowerBTL;
+    if (_isUrovo) return ReaderConfiguration.minPowerUrovo;
     return ReaderConfiguration.minPower;
   }
 
   double get _maxPower {
     if (_isC72) return ReaderConfiguration.maxPowerC72;
     if (_isBTL) return ReaderConfiguration.maxPowerBTL;
+    if (_isUrovo) return _readerService.urovoMaxPower;
     return ReaderConfiguration.maxPower;
   }
 

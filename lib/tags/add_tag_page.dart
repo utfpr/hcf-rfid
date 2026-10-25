@@ -7,6 +7,7 @@ import '../services/btl_reader_plugin.dart';
 import '../services/c72_reader_plugin.dart';
 import '../services/reader_service.dart';
 import '../services/rfid_service.dart';
+import '../services/urovo_reader_plugin.dart';
 import '../theme/app_colors.dart';
 
 class AddTagPage extends StatefulWidget {
@@ -34,6 +35,9 @@ class _AddTagPageState extends State<AddTagPage> {
   bool get _isBTL =>
       _readerService.isAcuraBTLReader(_readerService.connectedReader);
 
+  bool get _isUrovo =>
+      _readerService.isUrovoReader(_readerService.connectedReader);
+
   StreamSubscription<Map<String, dynamic>>? _tagStreamSubscription;
   StreamSubscription<bool>? _triggerSubscription;
 
@@ -50,6 +54,8 @@ class _AddTagPageState extends State<AddTagPage> {
     if (_isScanning) {
       if (_isBTL) {
         BTLReaderPlugin.stopScan();
+      } else if (_isUrovo) {
+        UrovoReaderPlugin.stopScan();
       } else {
         C72ReaderPlugin.stopScan();
       }
@@ -58,8 +64,11 @@ class _AddTagPageState extends State<AddTagPage> {
   }
 
   void _initTrigger() {
-    final stream =
-        _isBTL ? BTLReaderPlugin.triggerStream : C72ReaderPlugin.triggerStream;
+    final stream = _isBTL
+        ? BTLReaderPlugin.triggerStream
+        : _isUrovo
+            ? UrovoReaderPlugin.triggerStream
+            : C72ReaderPlugin.triggerStream;
     _triggerSubscription = stream.listen(
       (pressed) {
         if (!mounted) return;
@@ -90,6 +99,9 @@ class _AddTagPageState extends State<AddTagPage> {
     if (_isBTL) {
       _tagStreamSubscription = BTLReaderPlugin.tagStream.listen(_onTagReceived);
       BTLReaderPlugin.startScan();
+    } else if (_isUrovo) {
+      _tagStreamSubscription = UrovoReaderPlugin.tagStream.listen(_onTagReceived);
+      UrovoReaderPlugin.startScan();
     } else {
       _tagStreamSubscription = C72ReaderPlugin.tagStream.listen(_onTagReceived);
       C72ReaderPlugin.startScan();
@@ -125,6 +137,8 @@ class _AddTagPageState extends State<AddTagPage> {
     _tagStreamSubscription = null;
     if (_isBTL) {
       BTLReaderPlugin.stopScan();
+    } else if (_isUrovo) {
+      UrovoReaderPlugin.stopScan();
     } else {
       C72ReaderPlugin.stopScan();
     }

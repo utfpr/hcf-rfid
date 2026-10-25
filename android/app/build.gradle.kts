@@ -39,6 +39,9 @@ android {
 dependencies {
     implementation(files("libs/DeviceAPI_ver20230301_release.aar"))
     implementation(files("libs/Rfid.AsciiProtocol-3.1.0-release.aar"))
+    // Urovo UHF SDK (DT50P and other Urovo devices with integrated UHF). The android.device.*
+    // classes it uses are provided by the Urovo ROM at runtime.
+    implementation(files("libs/URFIDLibrary-v2.6.0609.aar"))
 }
 
 flutter {

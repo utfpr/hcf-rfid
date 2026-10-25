@@ -25,6 +25,10 @@ class MainActivity : FlutterActivity() {
         private const val BTL_EVENT_CHANNEL = "com.example.beontag_utfpr_agro_mobile/btl_tags"
         private const val BTL_TRIGGER_EVENT_CHANNEL = "com.example.beontag_utfpr_agro_mobile/btl_trigger"
 
+        private const val UROVO_METHOD_CHANNEL = "com.example.beontag_utfpr_agro_mobile/urovo"
+        private const val UROVO_EVENT_CHANNEL = "com.example.beontag_utfpr_agro_mobile/urovo_tags"
+        private const val UROVO_TRIGGER_EVENT_CHANNEL = "com.example.beontag_utfpr_agro_mobile/urovo_trigger"
+
         private const val BT_PERMISSION_REQUEST_CODE = 1001
 
         // Chainway C72 trigger key codes (varies by firmware)
@@ -36,16 +40,27 @@ class MainActivity : FlutterActivity() {
             KeyEvent.KEYCODE_F5,  // 135
             293,                   // KEYCODE_SCAN_TRIGGER (some Chainway firmware)
         )
+
+        // Urovo RFID trigger key codes (RFID Development Documentation v2.25): 523 = pistol grip trigger,
+        // 515 = DT610 left PTT. The side scan keys (520/521) stay with the barcode scanner.
+        private val UROVO_TRIGGER_KEY_CODES = setOf(523, 515)
+
+        // How long to wait for the Urovo module to be released when the app is closing.
+        private const val UROVO_RELEASE_WAIT_MS = 2_000L
     }
 
     private var c72Wrapper: C72ReaderWrapper? = null
     private var btlWrapper: BTLReaderWrapper? = null
+    private var urovoWrapper: UrovoReaderWrapper? = null
 
     private var c72TagEventSink: EventChannel.EventSink? = null
     private var c72TriggerEventSink: EventChannel.EventSink? = null
 
     private var btlTagEventSink: EventChannel.EventSink? = null
     private var btlTriggerEventSink: EventChannel.EventSink? = null
+
+    private var urovoTagEventSink: EventChannel.EventSink? = null
+    private var urovoTriggerEventSink: EventChannel.EventSink? = null
 
     private var isInForeground = false
     private var isKeepAliveRunning = false
@@ -56,12 +71,24 @@ class MainActivity : FlutterActivity() {
             c72TriggerEventSink?.success(true)
             return true
         }
+        if (urovoWrapper?.isUrovoDevice == true) {
+            Log.d(TAG, "Urovo key down: keyCode=$keyCode")
+            if (keyCode in UROVO_TRIGGER_KEY_CODES) {
+                // Holding the trigger repeats ACTION_DOWN; only the first one starts a read.
+                if ((event?.repeatCount ?: 0) == 0) urovoTriggerEventSink?.success(true)
+                return true
+            }
+        }
         return super.onKeyDown(keyCode, event)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode in TRIGGER_KEY_CODES) {
             c72TriggerEventSink?.success(false)
+            return true
+        }
+        if (keyCode in UROVO_TRIGGER_KEY_CODES && urovoWrapper?.isUrovoDevice == true) {
+            urovoTriggerEventSink?.success(false)
             return true
         }
         return super.onKeyUp(keyCode, event)
@@ -71,9 +98,13 @@ class MainActivity : FlutterActivity() {
         super.onStart()
         isInForeground = true
         // Recovers the service if a reader was connected without it (e.g. C72 auto-init in startScan).
-        if (c72Wrapper?.isConnected() == true || btlWrapper?.isConnected() == true) {
+        if (c72Wrapper?.isConnected() == true || btlWrapper?.isConnected() == true ||
+            urovoWrapper?.isConnected() == true
+        ) {
             startKeepAliveService()
         }
+        // The Urovo grip trigger reads RFID only while the app is visible (no-op if the reader isn't connected).
+        urovoWrapper?.setBarcodeOnTriggerEnabled(false)
         requestRuntimePermissionsIfNeeded()
     }
 
@@ -82,10 +113,12 @@ class MainActivity : FlutterActivity() {
 
         c72Wrapper = C72ReaderWrapper(applicationContext)
         btlWrapper = BTLReaderWrapper(applicationContext)
+        urovoWrapper = UrovoReaderWrapper(applicationContext)
         ReaderConnectionService.onTaskRemovedListener = taskRemovedListener
 
         setupC72Channels(flutterEngine)
         setupBTLChannels(flutterEngine)
+        setupUrovoChannels(flutterEngine)
     }
 
     // ── C72 channels ──────────────────────────────────────────────────────────
@@ -215,10 +248,73 @@ class MainActivity : FlutterActivity() {
         )
     }
 
+    // ── Urovo channels ────────────────────────────────────────────────────────
+
+    private fun setupUrovoChannels(flutterEngine: FlutterEngine) {
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, UROVO_TRIGGER_EVENT_CHANNEL).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    urovoTriggerEventSink = events
+                }
+                override fun onCancel(arguments: Any?) { urovoTriggerEventSink = null }
+            }
+        )
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, UROVO_METHOD_CHANNEL).setMethodCallHandler { call, result ->
+            val wrapper = urovoWrapper
+            if (wrapper == null) {
+                result.error("UROVO_UNAVAILABLE", "Urovo reader wrapper not initialized", null)
+                return@setMethodCallHandler
+            }
+            when (call.method) {
+                "isUrovoDevice" -> result.success(wrapper.isUrovoDevice)
+                "initReader" -> wrapper.initReader { error ->
+                    if (error == null) {
+                        startKeepAliveService()
+                        if (isInForeground) wrapper.setBarcodeOnTriggerEnabled(false)
+                        result.success(true)
+                    } else {
+                        result.error("UROVO_INIT_ERROR", error, null)
+                    }
+                }
+                "disconnectReader" -> {
+                    wrapper.disconnectReader()
+                    stopKeepAliveServiceIfIdle()
+                    result.success(null)
+                }
+                "setPower" -> {
+                    val power = (call.arguments as? Number)?.toInt() ?: 30
+                    wrapper.setPower(power) { ok -> result.success(ok) }
+                }
+                "getPower" -> wrapper.getPower { arr -> result.success(listOf(arr[0], arr[1])) }
+                "getMaxPower" -> result.success(wrapper.getMaxPower())
+                "startScan" -> { wrapper.startScan(); result.success(null) }
+                "stopScan" -> { wrapper.stopScan(); result.success(null) }
+                "isConnected" -> result.success(wrapper.isConnected())
+                else -> result.notImplemented()
+            }
+        }
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, UROVO_EVENT_CHANNEL).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    urovoTagEventSink = events
+                    urovoWrapper?.onTagRead = { map -> runOnUiThread { urovoTagEventSink?.success(map) } }
+                }
+                override fun onCancel(arguments: Any?) {
+                    urovoWrapper?.onTagRead = null
+                    urovoWrapper?.stopScan()
+                    urovoTagEventSink = null
+                }
+            }
+        )
+    }
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     override fun onDestroy() {
         disconnectAllReaders()
+        urovoWrapper?.shutdown()
         if (ReaderConnectionService.onTaskRemovedListener === taskRemovedListener) {
             ReaderConnectionService.onTaskRemovedListener = null
         }
@@ -232,14 +328,19 @@ class MainActivity : FlutterActivity() {
         // Keep the reader connected; only end an active read and let Flutter pages see a trigger release.
         c72Wrapper?.stopScan()
         btlWrapper?.stopScan()
+        urovoWrapper?.stopScan()
         c72TriggerEventSink?.success(false)
         btlTriggerEventSink?.success(false)
+        urovoTriggerEventSink?.success(false)
+        // Give the grip trigger back to the barcode scanner for other apps while we're in background.
+        urovoWrapper?.setBarcodeOnTriggerEnabled(true)
         super.onStop()
     }
 
     private fun disconnectAllReaders() {
         c72Wrapper?.disconnectReader()
         btlWrapper?.disconnect()
+        urovoWrapper?.disconnectReader(UROVO_RELEASE_WAIT_MS)
     }
 
     // ── Keep-alive foreground service ─────────────────────────────────────────
@@ -256,7 +357,9 @@ class MainActivity : FlutterActivity() {
 
     private fun stopKeepAliveServiceIfIdle() {
         if (!isKeepAliveRunning) return
-        if (c72Wrapper?.isConnected() == true || btlWrapper?.isConnected() == true) return
+        if (c72Wrapper?.isConnected() == true || btlWrapper?.isConnected() == true ||
+            urovoWrapper?.isConnected() == true
+        ) return
         ReaderConnectionService.stop(applicationContext)
         isKeepAliveRunning = false
     }
