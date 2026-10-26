@@ -206,6 +206,8 @@ class ReaderService extends ChangeNotifier {
         (reader) => reader.id == _selectedReaderId,
         orElse: () => _availableReaders.first,
       );
+      // The reader may already be connected (e.g. BTL paired in BluetoothConnectionScreen).
+      _physicallyConnected = await isDeviceConnected();
       await _saveConnectedReader();
       notifyListeners();
     }

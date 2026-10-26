@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.beontag_utfpr_agro_mobile"
+        applicationId = "br.edu.utfpr.hcf.rfid"
         minSdk = 27  // Chainway C72 minimum (Android 8.1+)
         targetSdk = 33  // Chainway DeviceAPI requires targetSdk 33 for UART access
         versionCode = flutter.versionCode
